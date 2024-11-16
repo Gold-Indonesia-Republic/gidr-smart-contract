@@ -11,7 +11,7 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   mocha: {
-    timeout: 0
+    timeout: 0,
   },
   solidity: {
     compilers: [
@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
     },
     mumbaipolygon: {
       url: process.env.MUMBAI_POLYGON_TESTNET_URL || "",
@@ -38,6 +38,11 @@ const config: HardhatUserConfig = {
     },
     polygon: {
       url: process.env.POLYGON_MAINNET_URL || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    mandala: {
+      url: process.env.MANDALA_MAINNET_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

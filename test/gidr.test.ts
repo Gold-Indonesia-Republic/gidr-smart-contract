@@ -46,7 +46,11 @@ describe("GIDR", function () {
         expect(await instance_gidr.balanceOf(accounts[3].address)).to.equal(0);
     });
 
-    it("4. Transfer Fee", async () => {
+    it("4. Decimals", async () => {
+        expect(await instance_gidr.decimals()).to.equal(4);
+    });
+
+    it("5. Transfer Fee", async () => {
         const amountTransfer = await parseEther("1000");
         const fee = await parseEther("100");
         // Transfer Fee
@@ -62,7 +66,7 @@ describe("GIDR", function () {
         expect(await instance_gidr.balanceOf(accounts[5].address)).to.equal(await parseEther(String(1000 - 100)));
     });
 
-    it('5. Upgrade Contract', async () => {
+    it('6. Upgrade Contract', async () => {
         expect(Number(await instance_gidr.versionCode())).to.equal(0);
         const instance_gidr2 = await upgrades.upgradeProxy(instance_gidr.address, (await ethers.getContractFactory("GIDR")));
         expect(Number(await instance_gidr2.versionCode())).to.equal(1);
