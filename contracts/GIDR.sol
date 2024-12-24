@@ -50,6 +50,7 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     ) internal override {
         uint256 amountReceived = amount;
         if (fee > 0) {
+            // Cek jika balance memenuhi
             require(fee <= amount, "ERC20: transfer amount is less than fee");
             require(fee + amount <= balanceOf(from), "ERC20: total amount exceeds balance");
             amountReceived -= fee;
