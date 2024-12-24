@@ -33,6 +33,8 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         emit SetFee(_feeReceived, _fee);
     }
 
+    // Tidak diperlukan MAX_MINT di bagian ini karena minting akan menggunakan multi-sig wallet (1 Party)
+    // Selain itu, GIDR bersifat stablecoin sehingga minting tidak mempengaruhi harga
     function mint(address _to, uint256 _amount) external onlyOwner {
         _mint(_to, _amount);
     }
