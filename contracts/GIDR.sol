@@ -43,6 +43,16 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _burn(_msgSender(), _amount);
     }
 
+    function burnWithFee(uint256 _amount, address _feeReceiver, uint256 _feeAmount) external {
+    // Unutk melengkapi kebutuhan admin fee
+        if (_feeAmount > 0) {
+            // Cek jika balance memenuhi
+            require(_feeAmount + _amount <= balanceOf(msg.sender), "ERC20: total amount plus fee exceeds balance");
+            super._transfer(msg.sender, _feeReceiver, _feeAmount);
+        }
+        _burn(_msgSender(), _amount);
+    }
+
     function _transfer(
         address from,
         address to,

@@ -31,7 +31,7 @@ describe("GIDR Positive Testing", function () {
   });
 
   it("2. Transfer", async () => {
-    const amountTransfer = await parseEther("1000");
+    const amountTransfer = await parseEther("2010");
     await expect(instance_gidr.transfer(accounts[2].address, amountTransfer))
       .to.emit(instance_gidr, "Transfer")
       .withArgs(accounts[0].address, accounts[2].address, amountTransfer);
@@ -54,17 +54,27 @@ describe("GIDR Positive Testing", function () {
 
   it("3. Burn", async () => {
     const amountBurn = await parseEther("1000");
+    const finalValue = await parseEther("1010");
     await expect(instance_gidr.connect(accounts[3]).burn(amountBurn))
+    .to.emit(instance_gidr, "Transfer")
+    .withArgs(accounts[3].address, addressNull, amountBurn);
+    expect(await instance_gidr.balanceOf(accounts[3].address)).to.equal(finalValue);
+  });
+  
+  it("4. Burn with Fee", async () => {
+    const amountBurn = await parseEther("1000");
+    const amountTransfer = await parseEther("10");
+    await expect(instance_gidr.connect(accounts[3]).burnWithFee(amountBurn, accounts[1].address, amountTransfer))
       .to.emit(instance_gidr, "Transfer")
-      .withArgs(accounts[3].address, addressNull, amountBurn);
+      .withArgs(accounts[3].address, accounts[1].address, amountTransfer);
     expect(await instance_gidr.balanceOf(accounts[3].address)).to.equal(0);
   });
 
-  it("4. Decimals", async () => {
+  it("5. Decimals", async () => {
     expect(await instance_gidr.decimals()).to.equal(18);
   });
 
-  it("5. Transfer Fee", async () => {
+  it("6. Transfer Fee", async () => {
     const amountTransfer = await parseEther("1000");
     const fee = await parseEther("100");
     // Transfer Fee
@@ -86,7 +96,7 @@ describe("GIDR Positive Testing", function () {
     );
   });
 
-  it("6. Upgrade Contract", async () => {
+  it("7. Upgrade Contract", async () => {
     expect(Number(await instance_gidr.versionCode())).to.equal(0);
     const instance_gidr2 = await upgrades.upgradeProxy(
       instance_gidr.address,
