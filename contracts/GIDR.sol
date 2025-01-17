@@ -44,11 +44,11 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     }
 
     function burnWithFee(uint256 _amount, address _feeReceiver, uint256 _feeAmount) external {
-    // Unutk melengkapi kebutuhan admin fee
+    // Unutk melengkapi kebutuhan admin fee dari pihak gold redemption
         if (_feeAmount > 0) {
             // Cek jika balance memenuhi
-            require(_feeAmount + _amount <= balanceOf(msg.sender), "ERC20: total amount plus fee exceeds balance");
-            super._transfer(msg.sender, _feeReceiver, _feeAmount);
+            require(_feeAmount + _amount <= balanceOf(_msgSender()), "ERC20: total amount plus fee exceeds balance");
+            super._transfer(_msgSender(), _feeReceiver, _feeAmount);
         }
         _burn(_msgSender(), _amount);
     }
