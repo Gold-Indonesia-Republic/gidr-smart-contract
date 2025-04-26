@@ -14,7 +14,14 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const instance_gidr = await upgrades.deployProxy((await ethers.getContractFactory("GIDR")), [], { kind: 'uups' });
+  const instance_gidr = await upgrades.deployProxy(
+    (await ethers.getContractFactory("GIDR")) as any,
+    [], // initialize params (if any)
+    { 
+      kind: 'uups',
+      initializer: 'initialize' // explicitly specify initializer
+    }
+  );
   await instance_gidr.deployed();
   console.log("GIDR deployed to:", instance_gidr.address);
 }
