@@ -20,26 +20,27 @@ async function main() {
   // const contract_owner = await ethers.getSigner(
   //   process.env.OWNER_ADDRESS || ""
   // );
-  const contract_factory = await ethers.getContractFactory(
-    "GIDR"
-    // contract_owner
-  );
+  const GIDR = await ethers.getContractFactory("GIDR");
   var CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
   const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS || "";
   if (process.env.PROD != "yes") {
     CONTRACT_ADDRESS = TEST_CONTRACT_ADDRESS;
   }
+
+  console.log("Upgrading contract...");
   const instance_gidr = await upgrades.upgradeProxy(
     CONTRACT_ADDRESS,
-    contract_factory,
+    GIDR,
     { kind: "uups" }
   );
-  console.log("Upgraded to ", process.env.VERSION_CODE);
-  console.log(
-    process.env.VERSION_CODE,
-    " Contract Deployed To:",
-    instance_gidr.address
-  );
+  await instance_gidr.deployed();
+
+  console.log("Contract upgraded, migrating data...");
+  const tx = await instance_gidr.migrateToNewFeeSystem();
+  await tx.wait();
+  
+  console.log("Migration complete");
+  console.log("New implementation deployed to:", instance_gidr.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

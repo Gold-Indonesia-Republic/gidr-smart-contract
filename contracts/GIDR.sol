@@ -11,6 +11,11 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
 
     uint256 public versionCode;
 
+    // Keep old variables (mark as deprecated)
+    address public feeReceived; // deprecated
+    uint256 public fee; // deprecated
+
+    // Add new variables
     address public transferFeeReceived;
     uint256 public transferFee;
     address public burnFeeReceived;
@@ -39,6 +44,16 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
 
     function _authorizeUpgrade(address) internal override onlyOwner {
         versionCode += 1;
+    }
+
+    function migrateToNewFeeSystem() external onlyOwner {
+        require(transferFeeReceived == address(0), "Already migrated");
+        transferFeeReceived = feeReceived;
+        transferFee = fee;
+        
+        // Optionally clear old values
+        feeReceived = address(0);
+        fee = 0;
     }
 
     function setTransferFee(address _transferFeeReceived, uint256 _transferFee) external onlyOwner {
