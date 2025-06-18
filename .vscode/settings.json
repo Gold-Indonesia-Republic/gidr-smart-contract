@@ -1,0 +1,13 @@
+{
+    "testExplorer.useNativeTesting": true,
+    "testExplorer.addToEditorContextMenu": true,
+    "testExplorer.codeLens": true,
+    "testExplorer.gutterDecoration": true,
+    "testExplorer.onReload": "retire",
+    "testExplorer.onStart": "reset",
+    "testExplorer.showOnRun": true,
+    "testExplorer.showOutputOnFailure": true,
+    "testExplorer.testCommand": "npx hardhat test",
+    "testExplorer.testFramework": "mocha",
+    "testExplorer.testPattern": "test/**/*.test.ts"
+} 

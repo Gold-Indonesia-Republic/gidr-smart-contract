@@ -22,24 +22,40 @@ async function main() {
   // );
   const GIDR = await ethers.getContractFactory("GIDR");
   var CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+  var RELAYER_ADDRESS = process.env.RELAYER_ADDRESS || "";
+  var OWNER_ADDRESS = process.env.OWNER_ADDRESS || "";
   const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS || "";
   if (process.env.PROD != "yes") {
     CONTRACT_ADDRESS = TEST_CONTRACT_ADDRESS;
   }
 
-  console.log("Upgrading contract...");
-  const instance_gidr = await upgrades.upgradeProxy(
-    CONTRACT_ADDRESS,
-    GIDR,
-    { kind: "uups" }
+  const impl = await upgrades.erc1967.getImplementationAddress(
+    CONTRACT_ADDRESS
   );
-  await instance_gidr.deployed();
+  console.log("Impl address:", impl);
 
-  console.log("Contract upgraded, migrating data...");
-  const tx = await instance_gidr.migrateToNewFeeSystem();
-  await tx.wait();
-  
-  console.log("Migration complete");
+  const proxy = await ethers.getContractAt("GIDR", CONTRACT_ADDRESS);
+  const owner = await proxy.owner();
+  console.log("Owner:", owner);
+
+  const [signer] = await ethers.getSigners();
+  console.log("Signer:", signer.address);
+
+  const implContract = await ethers.getContractAt("GIDR", impl);
+  try {
+    const implOwner = await implContract.owner();
+    console.log("Impl owner:", implOwner); // Should usually fail or return junk
+  } catch (e) {
+    console.log("Impl contract does not return a valid owner (expected)");
+  }
+
+  console.log("Upgrading contract...");
+  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR, {
+    unsafeAllow: ["constructor"],
+    constructorArgs: [RELAYER_ADDRESS] // Pass trustedForwarder address as constructor argument
+  });
+
+  await instance_gidr.deployed();
   console.log("New implementation deployed to:", instance_gidr.address);
 }
 

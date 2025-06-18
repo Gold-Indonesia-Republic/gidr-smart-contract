@@ -13,13 +13,18 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying contracts with the account:", deployer.address);
+
   // We get the contract to deploy
+  const GIDR = await ethers.getContractFactory("GIDR");
   const instance_gidr = await upgrades.deployProxy(
-    (await ethers.getContractFactory("GIDR")) as any,
-    [], // initialize params (if any)
+    GIDR,
+    [deployer.address], // Pass owner address as initialize argument
     { 
-      kind: 'uups',
-      initializer: 'initialize' // explicitly specify initializer
+      initializer: "initialize",
+      unsafeAllow: ["constructor"],
+      constructorArgs: [deployer.address] // Pass trustedForwarder address as constructor argument
     }
   );
   await instance_gidr.deployed();
