@@ -20,10 +20,6 @@ contract GIDRStorageV1 {
     address public burnFeeReceived;
     uint256 public burnFee;
     uint256 public burnFeeDecimal;
-
-    // Add frozen accounts functionality
-    mapping(address => bool) public frozenAccounts;
-
 }
 
 contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStorageV1, ERC2771ContextUpgradeable {
@@ -107,7 +103,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
         // Allow only relayer calls for burnWithFee
         require(isTrustedForwarder(msg.sender), "Only relayer can call burnWithFee");
         address from = _msgSender(); // Get the actual sender from the meta-transaction
-        require(!frozenAccounts[from], "Account is frozen");
         uint256 feeAmount = _amount * burnFee / 10 ** burnFeeDecimal;
         if (feeAmount > 0) {
             // Check if balance is sufficient
@@ -123,9 +118,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
         address to,
         uint256 amount
     ) internal override {
-        require(!frozenAccounts[from], "Sender account is frozen");
-        require(!frozenAccounts[to], "Recipient account is frozen");
-        
         uint256 amountReceived = amount;
         if (transferFee > 0) {
             // Cek jika balance memenuhi
@@ -136,23 +128,5 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
             emit TransferFee(from, transferFeeReceived, transferFee);
         }
         super._transfer(from, to, amountReceived);
-    }
-
-    function freezeAccount(address account) external onlyOwner {
-        require(account != address(0), "Cannot freeze zero address");
-        require(!frozenAccounts[account], "Account is already frozen");
-        frozenAccounts[account] = true;
-        emit AccountFrozen(account);
-    }
-
-    function unfreezeAccount(address account) external onlyOwner {
-        require(account != address(0), "Cannot unfreeze zero address");
-        require(frozenAccounts[account], "Account is not frozen");
-        frozenAccounts[account] = false;
-        emit AccountUnfrozen(account);
-    }
-
-    function isAccountFrozen(address account) external view returns (bool) {
-        return frozenAccounts[account];
     }
 }
