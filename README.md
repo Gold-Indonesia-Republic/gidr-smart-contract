@@ -16,6 +16,6 @@ Upgrading contracts:
 
 ```shell
 PROD=yes npx hardhat run scripts/upgrade.ts --network polygon
-npx hardhat verify --network polygon 0xA2d3E0357676E1Cbe2CDeDfF1460376a693eBE62 # Test
+npx hardhat verify --network polygon 0x58E48bF29FBCa0450C03FdFaaDCc78A5d5a95153 # Test
 npx hardhat verify --network polygon 0x0a40ff165736f5989e9F40fFbEd24A640c760754 # Production
 ```

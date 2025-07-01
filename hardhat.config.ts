@@ -36,6 +36,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
+    amoypolygon: {
+      url: process.env.AMOY_POLYGON_TESTNET_URL || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
     polygon: {
       url: process.env.POLYGON_MAINNET_URL || "",
       accounts:
@@ -51,7 +56,18 @@ const config: HardhatUserConfig = {
     apiKey: {
       polygonMumbai: process.env.POLYGON_API_KEY as string,
       polygon: process.env.POLYGON_API_KEY as string,
+      polygonAmoy: process.env.POLYGON_API_KEY as string,
     },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com"
+        },
+      }
+    ]
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
