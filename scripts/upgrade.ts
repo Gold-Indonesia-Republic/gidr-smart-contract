@@ -21,12 +21,16 @@ async function main() {
   //   process.env.OWNER_ADDRESS || ""
   // );
   const GIDR = await ethers.getContractFactory("GIDR");
-  var CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
-  var RELAYER_ADDRESS = process.env.RELAYER_ADDRESS || "";
-  var OWNER_ADDRESS = process.env.OWNER_ADDRESS || "";
+  let CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
+  const RELAYER_ADDRESS = process.env.RELAYER_ADDRESS || "";
+  const OWNER_ADDRESS = process.env.OWNER_ADDRESS || "";
   const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS || "";
-  if (process.env.PROD != "yes") {
+  if (process.env.PROD !== "yes") {
     CONTRACT_ADDRESS = TEST_CONTRACT_ADDRESS;
+  }
+
+  if (!CONTRACT_ADDRESS) {
+    throw new Error("CONTRACT_ADDRESS is not set.");
   }
 
   const impl = await upgrades.erc1967.getImplementationAddress(
@@ -38,9 +42,6 @@ async function main() {
   const owner = await proxy.owner();
   console.log("Owner:", owner);
 
-  const [signer] = await ethers.getSigners();
-  console.log("Signer:", signer.address);
-
   const implContract = await ethers.getContractAt("GIDR", impl);
   try {
     const implOwner = await implContract.owner();
@@ -50,13 +51,13 @@ async function main() {
   }
 
   console.log("Upgrading contract...");
-  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR, {
+  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR as any, {
     unsafeAllow: ["constructor"],
     constructorArgs: [RELAYER_ADDRESS] // Pass trustedForwarder address as constructor argument
   });
 
-  await instance_gidr.deployed();
-  console.log("New implementation deployed to:", instance_gidr.address);
+  await instance_gidr.waitForDeployment();
+  console.log("New implementation deployed to:", await instance_gidr.getAddress());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

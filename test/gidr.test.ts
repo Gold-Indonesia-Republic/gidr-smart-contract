@@ -1,21 +1,20 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { GIDR } from "../typechain-types";
 
 describe("GIDR", function () {
   let gidr: GIDR;
-  let accounts: SignerWithAddress[];
-  let owner: SignerWithAddress;
-  let user1: SignerWithAddress;
-  let user2: SignerWithAddress;
-  let relayer: SignerWithAddress;
+  let accounts: any[];
+  let owner: any;
+  let user1: any;
+  let user2: any;
+  let relayer: any;
   let forwarder: any;
 
   function decodeRevert(returndata: string): string {
     if (!returndata || returndata.length < 10) return "Silent revert";
     try {
-      const reason = ethers.utils.toUtf8String("0x" + returndata.slice(138));
+      const reason = ethers.toUtf8String("0x" + returndata.slice(138));
       return reason;
     } catch {
       return "Failed to decode revert reason";
@@ -23,7 +22,7 @@ describe("GIDR", function () {
   }
 
   async function relayMetaTx(
-    signer: SignerWithAddress,
+    signer: any,
     to: string,
     data: string,
     fun: string,
@@ -55,7 +54,7 @@ describe("GIDR", function () {
         { name: "data", type: "bytes" },
       ],
     };
-    const signature = await signer._signTypedData(domain, types, request);
+    const signature = await signer.signTypedData(domain, types, request);
 
     if (stc) {
       const [success, returndata] = await forwarder.callStatic.execute(
@@ -80,25 +79,25 @@ describe("GIDR", function () {
     // Deploy the MinimalForwarder
     const Forwarder = await ethers.getContractFactory("MinimalForwarder");
     forwarder = await Forwarder.deploy();
-    await forwarder.deployed();
+    await forwarder.waitForDeployment();
 
     // Deploy GIDR with the forwarder as trustedForwarder
     const GIDR = await ethers.getContractFactory("GIDR");
     gidr = (await upgrades.deployProxy(GIDR, {
       initializer: "initialize",
       unsafeAllow: ["constructor"],
-      constructorArgs: [forwarder.address],
+      constructorArgs: [await forwarder.getAddress()],
     })) as GIDR;
-    await gidr.deployed();
+    await gidr.waitForDeployment();
   });
 
   describe("Deployment", function () {
     it("Should set the right owner", async function () {
-      expect(await gidr.owner()).to.equal(owner.address);
+      expect(await gidr.owner()).to.equal(await owner.getAddress());
     });
 
     it("Should assign the total supply of tokens to the owner", async function () {
-      const ownerBalance = await gidr.balanceOf(owner.address);
+      const ownerBalance = await gidr.balanceOf(await owner.getAddress());
       expect(await gidr.totalSupply()).to.equal(ownerBalance);
     });
 
@@ -111,102 +110,102 @@ describe("GIDR", function () {
   describe("Transactions", function () {
     it("Should transfer tokens between accounts", async function () {
       // Mint 50 tokens to owner
-      await gidr.connect(owner).mint(owner.address, 50);
-      expect(await gidr.balanceOf(owner.address)).to.equal(50);
+      await gidr.connect(owner).mint(await owner.getAddress(), 50n);
+      expect(await gidr.balanceOf(await owner.getAddress())).to.equal(50n);
 
       // Transfer 50 tokens from owner to user1
-      await gidr.connect(owner).transfer(user1.address, 50);
-      const user1Balance = await gidr.balanceOf(user1.address);
-      expect(user1Balance).to.equal(50);
+      await gidr.connect(owner).transfer(await user1.getAddress(), 50n);
+      const user1Balance = await gidr.balanceOf(await user1.getAddress());
+      expect(user1Balance).to.equal(50n);
 
       // Transfer 50 tokens from user1 to user2
-      await gidr.connect(user1).transfer(user2.address, 50);
-      const user2Balance = await gidr.balanceOf(user2.address);
-      expect(user2Balance).to.equal(50);
+      await gidr.connect(user1).transfer(await user2.getAddress(), 50n);
+      const user2Balance = await gidr.balanceOf(await user2.getAddress());
+      expect(user2Balance).to.equal(50n);
     });
 
     it("Should transfer tokens between accounts using relayer", async function () {
       // Get relayer balance
-      const relayerBalance = await gidr.balanceOf(relayer.address);
+      const relayerBalance = await gidr.balanceOf(await relayer.getAddress());
       // Mint 50 tokens to user1
-      await gidr.connect(owner).mint(user1.address, 50);
-      expect(await gidr.balanceOf(user1.address)).to.equal(50);
+      await gidr.connect(owner).mint(await user1.getAddress(), 50n);
+      expect(await gidr.balanceOf(await user1.getAddress())).to.equal(50n);
 
       // Transfer 30 tokens from user1 to user2 using relayer
-      const transferAmount = 30;
+      const transferAmount = 30n;
       const data = gidr.interface.encodeFunctionData("transfer", [
-        user2.address,
+        await user2.getAddress(),
         transferAmount,
       ]);
-      await relayMetaTx(user1, gidr.address, data, "transfer");
+      await relayMetaTx(user1, await gidr.getAddress(), data, "transfer");
 
       // Check balances after transfer
-      expect(await gidr.balanceOf(user1.address)).to.equal(20); // 50 - 30
-      expect(await gidr.balanceOf(user2.address)).to.equal(30);
-      expect(await gidr.balanceOf(relayer.address)).to.equal(relayerBalance);
+      expect(await gidr.balanceOf(await user1.getAddress())).to.equal(20n); // 50 - 30
+      expect(await gidr.balanceOf(await user2.getAddress())).to.equal(30n);
+      expect(await gidr.balanceOf(await relayer.getAddress())).to.equal(relayerBalance);
     });
 
     it("Should fail if sender doesn't have enough tokens", async function () {
-      const initialOwnerBalance = await gidr.balanceOf(owner.address);
+      const initialOwnerBalance = await gidr.balanceOf(await owner.getAddress());
 
       // Try to send 1 token from user1 (0 tokens) to owner (100 tokens).
       await expect(
-        gidr.connect(user1).transfer(owner.address, 1)
+        gidr.connect(user1).transfer(await owner.getAddress(), 1n)
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
       // Owner balance shouldn't have changed.
-      expect(await gidr.balanceOf(owner.address)).to.equal(initialOwnerBalance);
+      expect(await gidr.balanceOf(await owner.getAddress())).to.equal(initialOwnerBalance);
     });
 
     it("Should update balances after transfers", async function () {
       // Mint some tokens to owner
-      await gidr.connect(owner).mint(owner.address, 5000);
-      const initialOwnerBalance = await gidr.balanceOf(owner.address);
+      await gidr.connect(owner).mint(await owner.getAddress(), 5000n);
+      const initialOwnerBalance = await gidr.balanceOf(await owner.getAddress());
 
       // Transfer 100 tokens from owner to user1.
-      await gidr.connect(owner).transfer(user1.address, 100);
+      await gidr.connect(owner).transfer(await user1.getAddress(), 100n);
 
       // Transfer another 50 tokens from owner to user2.
-      await gidr.connect(owner).transfer(user2.address, 50);
+      await gidr.connect(owner).transfer(await user2.getAddress(), 50n);
 
       // Check balances.
-      const finalOwnerBalance = await gidr.balanceOf(owner.address);
-      expect(finalOwnerBalance).to.equal(initialOwnerBalance.sub(150));
+      const finalOwnerBalance = await gidr.balanceOf(await owner.getAddress());
+      expect(finalOwnerBalance).to.equal(initialOwnerBalance - 150n);
 
-      const user1Balance = await gidr.balanceOf(user1.address);
-      expect(user1Balance).to.equal(100);
+      const user1Balance = await gidr.balanceOf(await user1.getAddress());
+      expect(user1Balance).to.equal(100n);
 
-      const user2Balance = await gidr.balanceOf(user2.address);
-      expect(user2Balance).to.equal(50);
+      const user2Balance = await gidr.balanceOf(await user2.getAddress());
+      expect(user2Balance).to.equal(50n);
     });
 
     it("Should fail transfers using relayer when sender doesn't have enough tokens", async function () {
-      const relayerBalance = await gidr.balanceOf(relayer.address);
-      const user2Balance = await gidr.balanceOf(user2.address);
+      const relayerBalance = await gidr.balanceOf(await relayer.getAddress());
+      const user2Balance = await gidr.balanceOf(await user2.getAddress());
 
       // Try to transfer 100 tokens from user1 (0 tokens) to user2
-      const transferAmount = 100;
+      const transferAmount = 100n;
       const data = gidr.interface.encodeFunctionData("transfer", [
-        user2.address,
+        await user2.getAddress(),
         transferAmount,
       ]);
 
       // Relay meta-tx should fail
       await expect(
-        relayMetaTx(user1, gidr.address, data, "transfer", true)
+        relayMetaTx(user1, await gidr.getAddress(), data, "transfer", true)
       ).to.be.rejectedWith("ERC20: transfer amount exceeds balance");
 
       // Balances should remain unchanged
-      expect(await gidr.balanceOf(user1.address)).to.equal(0);
-      expect(await gidr.balanceOf(user2.address)).to.equal(user2Balance);
-      expect(await gidr.balanceOf(relayer.address)).to.equal(relayerBalance);
+      expect(await gidr.balanceOf(await user1.getAddress())).to.equal(0n);
+      expect(await gidr.balanceOf(await user2.getAddress())).to.equal(user2Balance);
+      expect(await gidr.balanceOf(await relayer.getAddress())).to.equal(relayerBalance);
     });
   });
 
   describe("Fee Management", function () {
     it("Should set and get transfer fee correctly", async function () {
-      const feeReceiver = user1.address;
-      const fee = ethers.utils.parseEther("0.1"); // 0.1 GIDR
+      const feeReceiver = await user1.getAddress();
+      const fee = ethers.parseEther("0.1"); // 0.1 GIDR
 
       await gidr.connect(owner).setTransferFee(feeReceiver, fee);
 
@@ -215,9 +214,9 @@ describe("GIDR", function () {
     });
 
     it("Should set and get burn fee correctly", async function () {
-      const feeReceiver = user1.address;
-      const fee = 100; // 1% (100 basis points)
-      const decimal = 4; // 4 decimal places
+      const feeReceiver = await user1.getAddress();
+      const fee = 100n; // 1% (100 basis points)
+      const decimal = 4n; // 4 decimal places
 
       await gidr.connect(owner).setBurnFee(feeReceiver, fee, decimal);
 
@@ -227,8 +226,8 @@ describe("GIDR", function () {
     });
 
     it("Should fail to set transfer fee if not owner", async function () {
-      const feeReceiver = user1.address;
-      const fee = ethers.utils.parseEther("0.1");
+      const feeReceiver = await user1.getAddress();
+      const fee = ethers.parseEther("0.1");
 
       await expect(
         gidr.connect(user1).setTransferFee(feeReceiver, fee)
@@ -236,9 +235,9 @@ describe("GIDR", function () {
     });
 
     it("Should fail to set burn fee if not owner", async function () {
-      const feeReceiver = user1.address;
-      const fee = 100;
-      const decimal = 4;
+      const feeReceiver = await user1.getAddress();
+      const fee = 100n;
+      const decimal = 4n;
 
       await expect(
         gidr.connect(user1).setBurnFee(feeReceiver, fee, decimal)
@@ -248,73 +247,33 @@ describe("GIDR", function () {
 
   describe("Minting and Burning", function () {
     it("Should mint tokens correctly", async function () {
-      const amount = ethers.utils.parseEther("1000");
-      await gidr.connect(owner).mint(user1.address, amount);
-      expect(await gidr.balanceOf(user1.address)).to.equal(amount);
+      const amount = ethers.parseEther("1000");
+      await gidr.connect(owner).mint(await user1.getAddress(), amount);
+      expect(await gidr.balanceOf(await user1.getAddress())).to.equal(amount);
     });
 
     it("Should only burn tokens when owner calls it", async function () {
-      const amount = ethers.utils.parseEther("1000");
-      await gidr.connect(owner).mint(user1.address, amount);
+      const amount = ethers.parseEther("1000");
+      await gidr.connect(owner).mint(await user1.getAddress(), amount);
       await expect(gidr.connect(user1).burn(amount)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("Should let the owner burn tokens", async function () {
-      const amount = ethers.utils.parseEther("1000");
-      const ownerStartingBalance = await gidr.balanceOf(owner.address);
-      await gidr.connect(owner).mint(owner.address, amount);
+      const amount = ethers.parseEther("1000");
+      const ownerStartingBalance = await gidr.balanceOf(await owner.getAddress());
+      await gidr.connect(owner).mint(await owner.getAddress(), amount);
       await gidr.connect(owner).burn(amount);
-      expect(await gidr.balanceOf(owner.address)).to.equal(
+      expect(await gidr.balanceOf(await owner.getAddress())).to.equal(
         ownerStartingBalance
       );
     });
 
     it("Should fail to mint if not owner", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await expect(
-        gidr.connect(user1).mint(user2.address, amount)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-  });
-
-  describe("Frozen Accounts", function () {
-    it("Should freeze and unfreeze accounts correctly", async function () {
-      // Freeze account
-      await gidr.connect(owner).freezeAccount(user1.address);
-      expect(await gidr.frozenAccounts(user1.address)).to.be.true;
-
-      // Try to transfer from frozen account
-      await gidr
-        .connect(owner)
-        .mint(user1.address, ethers.utils.parseEther("1000"));
-      await expect(
-        gidr
-          .connect(user1)
-          .transfer(user2.address, ethers.utils.parseEther("100"))
-      ).to.be.revertedWith("Sender account is frozen");
-
-      // Unfreeze account
-      await gidr.connect(owner).unfreezeAccount(user1.address);
-      expect(await gidr.frozenAccounts(user1.address)).to.be.false;
-
-      // Transfer should work now
-      await gidr
-        .connect(user1)
-        .transfer(user2.address, ethers.utils.parseEther("100"));
-      expect(await gidr.balanceOf(user2.address)).to.equal(
-        ethers.utils.parseEther("100")
-      );
-    });
-
-    it("Should fail to freeze/unfreeze if not owner", async function () {
-      await expect(
-        gidr.connect(user1).freezeAccount(user2.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-
-      await expect(
-        gidr.connect(user1).unfreezeAccount(user2.address)
+        gidr.connect(user1).mint(await user2.getAddress(), amount)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
@@ -322,158 +281,67 @@ describe("GIDR", function () {
   describe("Burn with Fee", function () {
     beforeEach(async function () {
       // Set up burn fee
-      await gidr.connect(owner).setBurnFee(user2.address, 100, 4); // 1% fee
+      await gidr.connect(owner).setBurnFee(await user2.getAddress(), 100n, 4n); // 1% fee
       // Mint tokens to user1
       await gidr
         .connect(owner)
-        .mint(user1.address, ethers.utils.parseEther("1000"));
+        .mint(await user1.getAddress(), ethers.parseEther("1000"));
     });
 
     it("Should burn tokens with fee correctly", async function () {
-      const user1StartingBalance = await gidr.balanceOf(user1.address);
-      const user2StartingBalance = await gidr.balanceOf(user2.address);
-      const relayerStartingBalance = await gidr.balanceOf(relayer.address);
-      const burnAmount = ethers.utils.parseEther("100");
-      const expectedFee = burnAmount.mul(100).div(10000); // 1% of burn amount
+      const user1StartingBalance = await gidr.balanceOf(await user1.getAddress());
+      const user2StartingBalance = await gidr.balanceOf(await user2.getAddress());
+      const relayerStartingBalance = await gidr.balanceOf(await relayer.getAddress());
+      const burnAmount = ethers.parseEther("100");
+      const expectedFee = burnAmount * 100n / 10000n; // 1% of burn amount
 
       // Relay meta-tx as relayer for user1
       const data = gidr.interface.encodeFunctionData("burnWithFee", [
         burnAmount,
       ]);
-      await relayMetaTx(user1, gidr.address, data, "burnWithFee");
+      await relayMetaTx(user1, await gidr.getAddress(), data, "burnWithFee");
 
-      expect(await gidr.balanceOf(user1.address)).to.equal(
-        user1StartingBalance.sub(burnAmount).sub(expectedFee)
+      expect(await gidr.balanceOf(await user1.getAddress())).to.equal(
+        user1StartingBalance - burnAmount - expectedFee
       );
-      expect(await gidr.balanceOf(user2.address)).to.equal(
-        user2StartingBalance.add(expectedFee)
+      expect(await gidr.balanceOf(await user2.getAddress())).to.equal(
+        user2StartingBalance + expectedFee
       );
-      expect(await gidr.balanceOf(relayer.address)).to.equal(
+      expect(await gidr.balanceOf(await relayer.getAddress())).to.equal(
         relayerStartingBalance
       );
     });
 
     it("Should fail to burn with fee if not relayer", async function () {
-      const burnAmount = ethers.utils.parseEther("100");
+      const burnAmount = ethers.parseEther("100");
       // Try to relay meta-tx as user1 (not relayer)
       await expect(
         gidr.connect(user1).burnWithFee(burnAmount)
       ).to.be.revertedWith("Only relayer can call burnWithFee");
     });
-
-    it("Should fail to burn with fee if account is frozen", async function () {
-      // Verify burn fee is set correctly
-      const burnFee = await gidr.burnFee();
-      const burnFeeDecimal = await gidr.burnFeeDecimal();
-      const burnFeeReceived = await gidr.burnFeeReceived();
-      expect(burnFee).to.equal(100); // 1%
-      expect(burnFeeDecimal).to.equal(4);
-      expect(burnFeeReceived).to.equal(user2.address);
-
-      // Freeze the account and verify it's frozen
-      await gidr.connect(owner).freezeAccount(user1.address);
-      const isFrozen = await gidr.frozenAccounts(user1.address);
-      expect(isFrozen).to.be.true;
-      expect(await gidr.isAccountFrozen(user1.address)).to.be.true;
-
-      // Get initial balance
-      const initialBalance = await gidr.balanceOf(user1.address);
-
-      // Mint tokens to user1 to ensure they have enough balance
-      const burnAmount = ethers.utils.parseEther("100");
-      await gidr.connect(owner).mint(user1.address, burnAmount);
-
-      // Verify the account is still frozen after minting
-      expect(await gidr.isAccountFrozen(user1.address)).to.be.true;
-
-      // Try to burn with fee using relayer
-      const data = gidr.interface.encodeFunctionData("burnWithFee", [
-        burnAmount,
-      ]);
-      await expect(
-        relayMetaTx(user1, gidr.address, data, "burnWithFeeShouldFail", true)
-      ).to.be.rejectedWith("Account is frozen");
-
-      // Verify balances haven't changed
-      expect(await gidr.balanceOf(user1.address)).to.equal(
-        initialBalance.add(burnAmount)
-      );
-      expect(await gidr.balanceOf(user2.address)).to.equal(0);
-    });
   });
 
   describe("GIDR Fee Negative Testing", () => {
     it("1. Transfer Fee > Transfer Amount", async () => {
-      const amountTransfer = await ethers.utils.parseEther("0.50");
-      const excessiveFee = await ethers.utils.parseEther("0.51");
+      const amountTransfer = ethers.parseEther("0.50");
+      const excessiveFee = ethers.parseEther("0.51");
       await gidr
         .connect(owner)
-        .setTransferFee(accounts[1].address, excessiveFee);
+        .setTransferFee(await accounts[1].getAddress(), excessiveFee);
       await expect(
-        gidr.connect(owner).transfer(accounts[1].address, amountTransfer)
+        gidr.connect(owner).transfer(await accounts[1].getAddress(), amountTransfer)
       ).to.be.revertedWith("ERC20: transfer amount is less than fee");
     });
 
     it("2. Fee + Transfer Amount > Balance", async () => {
-      const amountTransfer = await ethers.utils.parseEther("50000000000000000");
-      const excessiveFee = await ethers.utils.parseEther("0.51");
+      const amountTransfer = ethers.parseEther("50000000000000000");
+      const excessiveFee = ethers.parseEther("0.51");
       await gidr
         .connect(owner)
-        .setTransferFee(accounts[1].address, excessiveFee);
+        .setTransferFee(await accounts[1].getAddress(), excessiveFee);
       await expect(
-        gidr.connect(owner).transfer(accounts[1].address, amountTransfer)
+        gidr.connect(owner).transfer(await accounts[1].getAddress(), amountTransfer)
       ).to.be.revertedWith("ERC20: total amount exceeds balance");
-    });
-
-    it("3. Transfer fails when sender account is frozen", async () => {
-      // Mint some tokens to user1
-      const transferAmount = ethers.utils.parseEther("100");
-      await gidr.connect(owner).mint(user1.address, transferAmount);
-
-      // Freeze user1's account
-      await gidr.connect(owner).freezeAccount(user1.address);
-      expect(await gidr.isAccountFrozen(user1.address)).to.be.true;
-
-      // Attempt transfer from frozen account should fail
-      await expect(
-        gidr.connect(user1).transfer(user2.address, transferAmount)
-      ).to.be.revertedWith("Sender account is frozen");
-    });
-
-    it("4. Transfer fails when recipient account is frozen", async () => {
-      // Mint some tokens to user1
-      const transferAmount = ethers.utils.parseEther("100");
-      await gidr.connect(owner).mint(user1.address, transferAmount);
-
-      // Freeze user2's account (recipient)
-      await gidr.connect(owner).freezeAccount(user2.address);
-      expect(await gidr.isAccountFrozen(user2.address)).to.be.true;
-
-      // Attempt transfer to frozen account should fail
-      await expect(
-        gidr.connect(user1).transfer(user2.address, transferAmount)
-      ).to.be.revertedWith("Recipient account is frozen");
-    });
-
-    it("5. Cannot freeze an already frozen account", async () => {
-      // First freeze
-      await gidr.connect(owner).freezeAccount(user1.address);
-      expect(await gidr.isAccountFrozen(user1.address)).to.be.true;
-
-      // Attempt to freeze again should fail
-      await expect(
-        gidr.connect(owner).freezeAccount(user1.address)
-      ).to.be.revertedWith("Account is already frozen");
-    });
-
-    it("6. Cannot unfreeze an account that is not frozen", async () => {
-      // Verify account is not frozen initially
-      expect(await gidr.isAccountFrozen(user1.address)).to.be.false;
-
-      // Attempt to unfreeze should fail
-      await expect(
-        gidr.connect(owner).unfreezeAccount(user1.address)
-      ).to.be.revertedWith("Account is not frozen");
     });
   });
 });

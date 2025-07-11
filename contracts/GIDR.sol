@@ -24,7 +24,7 @@ contract GIDRStorageV1 {
 
 contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStorageV1, ERC2771ContextUpgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address trustedForwarder) ERC2771ContextUpgradeable(trustedForwarder) initializer {}
+    constructor() ERC2771ContextUpgradeable(address(bytes20(bytes('0xa2b35C0E3e07C241EBd56E5C57c32560591c37Dd')))) initializer {}
     
     event AccountFrozen(address indexed account);
     event AccountUnfrozen(address indexed account);
