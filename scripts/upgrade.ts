@@ -51,7 +51,7 @@ async function main() {
   }
 
   console.log("Upgrading contract...");
-  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR as any, {
+  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR, {
     unsafeAllow: ["constructor"],
     constructorArgs: [RELAYER_ADDRESS] // Pass trustedForwarder address as constructor argument
   });
