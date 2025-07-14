@@ -6,9 +6,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {}
-
     uint256 public versionCode;
 
     // Keep old variables (mark as deprecated)
@@ -37,9 +34,9 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     );
 
     function initialize() public initializer {
-        __UUPSUpgradeable_init();
-        __Ownable_init();
         __ERC20_init("Gold Indonesia Republic", "GIDR");
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {
@@ -98,20 +95,20 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _burn(_msgSender(), _amount);
     }
 
-    function _transfer(
-        address from,
+    function transfer(
         address to,
         uint256 amount
-    ) internal override {
+    ) override public returns (bool) {
         uint256 amountReceived = amount;
         if (transferFee > 0) {
             // Cek jika balance memenuhi
             require(transferFee <= amount, "ERC20: transfer amount is less than fee");
-            require(transferFee + amount <= balanceOf(from), "ERC20: total amount exceeds balance");
+            require(transferFee + amount <= balanceOf(_msgSender()), "ERC20: total amount exceeds balance");
             amountReceived -= transferFee;
-            super._transfer(from, transferFeeReceived, transferFee);
-            emit TransferFee(from, transferFeeReceived, transferFee);
+            super._transfer(_msgSender(), transferFeeReceived, transferFee);
+            emit TransferFee(_msgSender(), transferFeeReceived, transferFee);
         }
-        super._transfer(from, to, amountReceived);
+        super._transfer(_msgSender(), to, amountReceived);
+        return true;
     }
 }

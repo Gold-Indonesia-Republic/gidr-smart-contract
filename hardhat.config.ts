@@ -2,11 +2,7 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-etherscan";
-import "hardhat-gas-reporter";
-
 import "@openzeppelin/hardhat-upgrades";
-
 dotenv.config();
 
 const config: HardhatUserConfig = {
@@ -16,7 +12,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.17",
+        version: "0.8.28",
         settings: {
           optimizer: {
             enabled: true,
@@ -53,9 +49,10 @@ const config: HardhatUserConfig = {
       polygon: process.env.POLYGON_API_KEY as string,
     },
   },
-  gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD",
+
+  ignition: {
+    timeBeforeBumpingFees: 10000, // Time in milliseconds before bumping the fee (optional)
+    maxFeeBumps: 100000000000,
   },
 };
 

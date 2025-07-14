@@ -33,14 +33,14 @@ async function main() {
     GIDR,
     { kind: "uups" }
   );
-  await instance_gidr.deployed();
+  await instance_gidr.waitForDeployment();
 
   console.log("Contract upgraded, migrating data...");
   const tx = await instance_gidr.migrateToNewFeeSystem();
   await tx.wait();
   
   console.log("Migration complete");
-  console.log("New implementation deployed to:", instance_gidr.address);
+  console.log("New implementation deployed to:", await instance_gidr.getAddress());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

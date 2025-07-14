@@ -1,27 +1,28 @@
 import { expect } from "chai";
+import hre from "hardhat";
 import { ethers, upgrades } from "hardhat";
 
 describe("GIDR Positive Testing", function () {
   let instance_gidr: any;
   let accounts: any;
-  const parseEther: any = ethers.utils.parseEther;
+  const parseEther = ethers.parseEther;
   const addressNull: string = "0x0000000000000000000000000000000000000000";
 
   before(async function () {
-    accounts = await ethers.getSigners();
+    accounts = await hre.ethers.getSigners();
     instance_gidr = await upgrades.deployProxy(
       (await ethers.getContractFactory("GIDR")) as any,
       [],
       { kind: "uups" }
     );
-    await instance_gidr.deployed();
+    await instance_gidr.waitForDeployment();
 
     expect(await instance_gidr.name()).to.equal("Gold Indonesia Republic");
     expect(await instance_gidr.symbol()).to.equal("GIDR");
   });
 
   it("1. Minting", async () => {
-    const amountMint = await parseEther("1000000");
+    const amountMint = parseEther("1000000");
     await expect(instance_gidr.mint(accounts[0].address, amountMint))
       .to.emit(instance_gidr, "Transfer")
       .withArgs(addressNull, accounts[0].address, amountMint);
@@ -31,7 +32,7 @@ describe("GIDR Positive Testing", function () {
   });
 
   it("2. Transfer", async () => {
-    const amountTransfer = await parseEther("1000");
+    const amountTransfer = parseEther("1000");
     await expect(instance_gidr.transfer(accounts[2].address, amountTransfer))
       .to.emit(instance_gidr, "Transfer")
       .withArgs(accounts[0].address, accounts[2].address, amountTransfer);
@@ -53,8 +54,8 @@ describe("GIDR Positive Testing", function () {
   });
 
   it("3. Burn", async () => {
-    const amountBurn = await parseEther("1000");
-    const finalValue = await parseEther("0");
+    const amountBurn = parseEther("1000");
+    const finalValue = parseEther("0");
     await expect(instance_gidr.connect(accounts[3]).burn(amountBurn))
       .to.emit(instance_gidr, "Transfer")
       .withArgs(accounts[3].address, addressNull, amountBurn);
@@ -64,8 +65,8 @@ describe("GIDR Positive Testing", function () {
   });
 
   it("4. Transfer Fee", async () => {
-    const amountTransfer = await parseEther("1000");
-    const fee = await parseEther("0.1");
+    const amountTransfer = parseEther("1000");
+    const fee = parseEther("0.1");
     // Transfer Fee
     await expect(instance_gidr.setTransferFee(accounts[4].address, fee))
       .to.emit(instance_gidr, "SetTransferFee")
@@ -77,16 +78,16 @@ describe("GIDR Positive Testing", function () {
       .withArgs(
         accounts[0].address,
         accounts[5].address,
-        await parseEther(String(1000 - 0.1))
+        parseEther("999.9")
       );
     expect(await instance_gidr.balanceOf(accounts[4].address)).to.equal(fee);
     expect(await instance_gidr.balanceOf(accounts[5].address)).to.equal(
-      await parseEther(String(1000 - 0.1))
+      parseEther("999.9")
     );
   });
 
   it("5. Burn with Fee", async () => {
-    const amountMint = await parseEther("10600");
+    const amountMint = parseEther("10600");
     await expect(instance_gidr.setBurnFee(accounts[6].address, 6, 2))
       .to.emit(instance_gidr, "SetBurnFee")
       .withArgs(accounts[6].address, 6, 2);
@@ -96,8 +97,8 @@ describe("GIDR Positive Testing", function () {
     expect(await instance_gidr.balanceOf(accounts[3].address)).to.equal(
       amountMint
     );
-    const amountBurn = await parseEther("10000");
-    const amountTransfer = await parseEther("600");
+    const amountBurn = parseEther("10000");
+    const amountTransfer = parseEther("600");
     await expect(
       instance_gidr
         .connect(accounts[3])
@@ -112,8 +113,8 @@ describe("GIDR Positive Testing", function () {
   });
 
   it("6. Burn with Fee does not incur Transfer Fee", async () => {
-    const amountMint = await parseEther("10700");
-    const fee = await parseEther("0.5");
+    const amountMint = parseEther("10700");
+    const fee = parseEther("0.5");
     // Transfer Fee
     await expect(instance_gidr.setTransferFee(accounts[4].address, fee))
       .to.emit(instance_gidr, "SetTransferFee")
@@ -127,10 +128,10 @@ describe("GIDR Positive Testing", function () {
     expect(await instance_gidr.balanceOf(accounts[3].address)).to.equal(
       amountMint
     );
-    const amountBurn = await parseEther("10000");
-    const afterBurn = await parseEther("100");
-    const amountTransfer = await parseEther("600");
-    const totalTransfer = await parseEther("1200");
+    const amountBurn = parseEther("10000");
+    const afterBurn = parseEther("100");
+    const amountTransfer = parseEther("600");
+    const totalTransfer = parseEther("1200");
     await expect(
       instance_gidr
         .connect(accounts[3])
@@ -161,7 +162,7 @@ describe("GIDR Positive Testing", function () {
 describe("GIDR Negative Testing", () => {
   let instance_gidr: any;
   let accounts: any;
-  const parseEther: any = ethers.utils.parseEther;
+  const parseEther = ethers.parseEther;
   const addressNull: string = "0x0000000000000000000000000000000000000000";
 
   before(async function () {
@@ -171,15 +172,15 @@ describe("GIDR Negative Testing", () => {
       [],
       { kind: "uups" }
     );
-    await instance_gidr.deployed();
+    await instance_gidr.waitForDeployment();
 
     expect(await instance_gidr.name()).to.equal("Gold Indonesia Republic");
     expect(await instance_gidr.symbol()).to.equal("GIDR");
   });
 
   it("1. Transfer Fee > Transfer Amount", async () => {
-    const amountTransfer = await parseEther("0.50");
-    const excessiveFee = await parseEther("0.51");
+    const amountTransfer = parseEther("0.50");
+    const excessiveFee = parseEther("0.51");
     await instance_gidr.setTransferFee(accounts[1].address, excessiveFee);
     await expect(
       instance_gidr.transfer(accounts[1].address, amountTransfer)
@@ -187,8 +188,8 @@ describe("GIDR Negative Testing", () => {
   });
 
   it("2. Fee + Transfer Amount > Balance", async () => {
-    const amountTransfer = await parseEther("50000000000000000");
-    const excessiveFee = await parseEther("0.51");
+    const amountTransfer = parseEther("50000000000000000");
+    const excessiveFee = parseEther("0.51");
     await instance_gidr.setTransferFee(accounts[1].address, excessiveFee);
     await expect(
       instance_gidr.transfer(accounts[1].address, amountTransfer)
