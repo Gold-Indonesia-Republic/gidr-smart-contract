@@ -303,13 +303,13 @@ describe("GIDR", function () {
       await relayMetaTx(user1, gidr.address, data, "burnWithFee");
 
       expect(await gidr.balanceOf(user1.address)).to.equal(
-        Number(user1StartingBalance) - Number(burnAmount) - expectedFee
+        user1StartingBalance.toBigInt() - burnAmount.toBigInt() - BigInt(expectedFee)
       );
       expect(await gidr.balanceOf(user2.address)).to.equal(
-        Number(user2StartingBalance) + expectedFee
+        user2StartingBalance.toBigInt() + BigInt(expectedFee)
       );
       expect(await gidr.balanceOf(relayer.address)).to.equal(
-        relayerStartingBalance
+        relayerStartingBalance.toBigInt()
       );
     });
 

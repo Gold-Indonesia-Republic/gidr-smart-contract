@@ -56,8 +56,8 @@ async function main() {
     constructorArgs: [RELAYER_ADDRESS] // Pass trustedForwarder address as constructor argument
   });
 
-  await instance_gidr.waitForDeployment();
-  console.log("New implementation deployed to:", await instance_gidr.getAddress());
+  const deployed = await instance_gidr.deployed();
+  console.log("New implementation deployed to:", deployed.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

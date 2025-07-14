@@ -7,7 +7,8 @@
     "test": "npx hardhat test",
     "deploy": "npx hardhat run scripts/deploy.ts --network polygon",
     "upgrade": "npx hardhat run scripts/upgrade.ts --network polygon",
-    "verify": "npx hardhat verify --network polygon 0x58E48bF29FBCa0450C03FdFaaDCc78A5d5a95153"
+    "verify:test": "npx hardhat verify --network polygon 0x58E48bF29FBCa0450C03FdFaaDCc78A5d5a95153",
+    "verify:prod": "npx hardhat verify --network polygon 0x0a40ff165736f5989e9F40fFbEd24A640c760754"
   },
   "keywords": [],
   "author": "",

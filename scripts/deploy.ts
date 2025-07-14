@@ -12,6 +12,7 @@ async function main() {
   // If this script is run directly using `node` you may want to call compile
   // manually to make sure everything is compiled
   // await hre.run('compile');
+  const forwarder = process.env.FORWARDER_ADDRESS || '';
 
   // We get the contract to deploy
   const instance_gidr = await upgrades.deployProxy(
@@ -19,7 +20,8 @@ async function main() {
     [], // initialize params (if any)
     { 
       kind: 'uups',
-      initializer: 'initialize' // explicitly specify initializer
+      initializer: 'initialize', // explicitly specify initializer
+      constructorArgs: [forwarder]
     }
   );
   await instance_gidr.deployed();
