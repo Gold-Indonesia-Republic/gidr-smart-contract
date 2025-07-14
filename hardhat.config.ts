@@ -54,6 +54,12 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      polygonMumbai: process.env.POLYGON_API_KEY as string,
+      polygon: process.env.POLYGON_API_KEY as string,
+    },
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
