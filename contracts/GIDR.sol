@@ -4,15 +4,16 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
-contract GIDRStorageV1 {
+contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
     uint256 public versionCode;
 
     // Keep old variables (mark as deprecated)
-    address private feeReceived; // deprecated
-    uint256 private fee; // deprecated
+    address public feeReceived; // deprecated
+    uint256 public fee; // deprecated
 
     // Add new variables
     address public transferFeeReceived;
@@ -20,18 +21,6 @@ contract GIDRStorageV1 {
     address public burnFeeReceived;
     uint256 public burnFee;
     uint256 public burnFeeDecimal;
-
-    // Add frozen accounts functionality
-    mapping(address => bool) public frozenAccounts;
-
-}
-
-contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStorageV1, ERC2771ContextUpgradeable {
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address trustedForwarder) ERC2771ContextUpgradeable(trustedForwarder) initializer {}
-    
-    event AccountFrozen(address indexed account);
-    event AccountUnfrozen(address indexed account);
 
     event SetTransferFee(address indexed feeReceived, uint256 indexed fee);
     event TransferFee(
@@ -48,29 +37,23 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
     );
 
     function initialize() public initializer {
-        __ERC20_init("Gold Indonesia Republic", "GIDR");
-        __Ownable_init();
         __UUPSUpgradeable_init();
+        __Ownable_init();
+        __ERC20_init("Gold Indonesia Republic", "GIDR");
     }
 
     function _authorizeUpgrade(address) internal override onlyOwner {
         versionCode += 1;
     }
 
-    function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (address) {
-        return super._msgSender();
-    }
-
-    function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (bytes calldata) {
-        return super._msgData();
-    }
-
-    function _contextSuffixLength() internal view virtual override(ContextUpgradeable, ERC2771ContextUpgradeable) returns (uint256) {
-        return 20;
-    }
-
-    function isTrustedForwarder(address forwarder) public view virtual override returns (bool) {
-        return super.isTrustedForwarder(forwarder);
+    function migrateToNewFeeSystem() external onlyOwner {
+        require(transferFeeReceived == address(0), "Already migrated");
+        transferFeeReceived = feeReceived;
+        transferFee = fee;
+        
+        // Optionally clear old values
+        feeReceived = address(0);
+        fee = 0;
     }
 
     function setTransferFee(address _transferFeeReceived, uint256 _transferFee) external onlyOwner {
@@ -93,29 +76,26 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
         emit SetBurnFee(_burnFeeReceived, _burnFee, _burnFeeDecimal);
     }
 
+    // Tidak diperlukan MAX_MINT di bagian ini karena minting akan menggunakan multi-sig wallet (1 Party)
+    // Selain itu, GIDR bersifat stablecoin sehingga minting tidak mempengaruhi harga
     function mint(address _to, uint256 _amount) external onlyOwner {
-        require(!isTrustedForwarder(msg.sender), "Relayer cannot mint");
         _mint(_to, _amount);
     }
 
-    function burn(uint256 _amount) external onlyOwner {
-        require(!isTrustedForwarder(msg.sender), "Relayer cannot burn");
+    function burn(uint256 _amount) external {
         _burn(_msgSender(), _amount);
     }
 
     function burnWithFee(uint256 _amount) external {
-        // Allow only relayer calls for burnWithFee
-        require(isTrustedForwarder(msg.sender), "Only relayer can call burnWithFee");
-        address from = _msgSender(); // Get the actual sender from the meta-transaction
-        require(!frozenAccounts[from], "Account is frozen");
+    // Untuk melengkapi kebutuhan admin fee dari pihak gold redemption
         uint256 feeAmount = _amount * burnFee / 10 ** burnFeeDecimal;
         if (feeAmount > 0) {
-            // Check if balance is sufficient
-            require(feeAmount + _amount <= balanceOf(from), "ERC20: total amount plus fee exceeds balance");
-            super._transfer(from, burnFeeReceived, feeAmount);
-            emit BurnFee(from, burnFeeReceived, feeAmount);
+            // Cek jika balance memenuhi
+            require(feeAmount + _amount <= balanceOf(_msgSender()), "ERC20: total amount plus fee exceeds balance");
+            super._transfer(_msgSender(), burnFeeReceived, feeAmount);
+            emit BurnFee(_msgSender(), burnFeeReceived, feeAmount);
         }
-        _burn(from, _amount);
+        _burn(_msgSender(), _amount);
     }
 
     function _transfer(
@@ -123,9 +103,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
         address to,
         uint256 amount
     ) internal override {
-        require(!frozenAccounts[from], "Sender account is frozen");
-        require(!frozenAccounts[to], "Recipient account is frozen");
-        
         uint256 amountReceived = amount;
         if (transferFee > 0) {
             // Cek jika balance memenuhi
@@ -136,23 +113,5 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable, GIDRStor
             emit TransferFee(from, transferFeeReceived, transferFee);
         }
         super._transfer(from, to, amountReceived);
-    }
-
-    function freezeAccount(address account) external onlyOwner {
-        require(account != address(0), "Cannot freeze zero address");
-        require(!frozenAccounts[account], "Account is already frozen");
-        frozenAccounts[account] = true;
-        emit AccountFrozen(account);
-    }
-
-    function unfreezeAccount(address account) external onlyOwner {
-        require(account != address(0), "Cannot unfreeze zero address");
-        require(frozenAccounts[account], "Account is not frozen");
-        frozenAccounts[account] = false;
-        emit AccountUnfrozen(account);
-    }
-
-    function isAccountFrozen(address account) external view returns (bool) {
-        return frozenAccounts[account];
     }
 }
