@@ -1,8 +1,14 @@
 # GIDR Smart Contract
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Smart contract for Gold-backed stablecoin GIDR (Gold Indonesia Republic)
 
-Example tasks:
+Setting up:
+```shell
+npm i
+cp .env.example .env
+```
+
+Running local test:
 
 ```shell
 npx hardhat help
@@ -16,6 +22,6 @@ Upgrading contracts:
 
 ```shell
 PROD=yes npx hardhat run scripts/upgrade.ts --network polygon
-npx hardhat verify --network polygon 0xA2d3E0357676E1Cbe2CDeDfF1460376a693eBE62 # Test
-npx hardhat verify --network polygon 0x0a40ff165736f5989e9F40fFbEd24A640c760754 # Production
+npx hardhat verify --network polygon {{Staging contract address}} # Test
+npx hardhat verify --network polygon {{Production contract address}} # Production
 ```
