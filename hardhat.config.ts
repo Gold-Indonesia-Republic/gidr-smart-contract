@@ -6,9 +6,6 @@ import "@openzeppelin/hardhat-upgrades";
 dotenv.config();
 
 const config: HardhatUserConfig = {
-  mocha: {
-    timeout: 0,
-  },
   solidity: {
     compilers: [
       {

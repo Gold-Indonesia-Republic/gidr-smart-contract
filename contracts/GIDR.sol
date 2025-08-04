@@ -35,7 +35,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
 
     function initialize() public initializer {
         __ERC20_init("Gold Indonesia Republic", "GIDR");
-        __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
     }
 

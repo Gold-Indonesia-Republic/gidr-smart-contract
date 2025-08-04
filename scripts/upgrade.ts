@@ -34,10 +34,6 @@ async function main() {
     { kind: "uups" }
   );
   await instance_gidr.waitForDeployment();
-
-  console.log("Contract upgraded, migrating data...");
-  const tx = await instance_gidr.migrateToNewFeeSystem();
-  await tx.wait();
   
   console.log("Migration complete");
   console.log("New implementation deployed to:", await instance_gidr.getAddress());

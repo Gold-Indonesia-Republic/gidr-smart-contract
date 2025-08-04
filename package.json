@@ -18,5 +18,8 @@
     "@safe-global/protocol-kit": "^5.0.2",
     "dotenv": "^17.2.0",
     "hardhat": "^2.25.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.14"
   }
 }
