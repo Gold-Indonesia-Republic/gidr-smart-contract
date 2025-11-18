@@ -12,3 +12,6 @@ artifacts
 # Dev files
 testscripts
 testscripts/*
+
+# MacOS files
+.DS_Store
