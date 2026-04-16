@@ -46,7 +46,7 @@ const config: HardhatUserConfig = {
       url: process.env.MANDALA_MAINNET_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    },
+    }
   },
   etherscan: {
     apiKey: {
