@@ -74,6 +74,14 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _;
     }
 
+    modifier onlyOwnerOrBurnVault() {
+        require(
+            owner() == _msgSender() || burnVaults[_msgSender()] || _msgSender() == burnVault,
+            "Caller is not owner or burn vault"
+        );
+        _;
+    }
+
     /// @notice Initialize the contract
     function initialize() public initializer {
         __UUPSUpgradeable_init();
@@ -121,12 +129,12 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /// @param _burnFeeReceived The address of the receiver of the burn fee
     /// @param _burnFee The amount of the burn fee
     /// @param _burnFeeDecimal The decimal of the burn fee
-    /// @dev Only the owner can set burn fee, limit is still hardcoded and set to 100%
+    /// @dev Only the owner or burn vault can set burn fee, limit is still hardcoded and set to 100%
     function setBurnFee(
         address _burnFeeReceived,
         uint256 _burnFee,
         uint256 _burnFeeDecimal
-    ) external onlyOwner {
+    ) external onlyOwnerOrBurnVault {
         require(_burnFeeReceived != address(0), "Address cannot be null");
         require(_burnFeeDecimal <= 18, "Decimal cannot be greater than 18");
         // Adding reasonable limit

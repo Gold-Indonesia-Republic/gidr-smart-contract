@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(///wsl.localhost/Ubuntu/home/oksi/**)",
+      "Read(//c/Users/oksit/**)",
+      "Read(///wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/**)",
+      "Read(///wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/docs/**)",
+      "Bash(npx hardhat *)",
+      "Read(//root/.nvm/**)",
+      "Read(///wsl.localhost/Ubuntu//**)"
+    ]
+  }
+}
