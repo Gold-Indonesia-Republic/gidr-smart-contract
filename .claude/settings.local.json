@@ -86,7 +86,12 @@
       "Bash(grep -r \"upgradeTo\\\\b\" //wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol 2>/dev/null | head -5)",
       "Read(///wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/**)",
       "Bash(cat //wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol | head -80)",
-      "Bash(cat //wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol | tail -30)"
+      "Bash(cat //wsl.localhost/Ubuntu/home/oksi/Work/gidr-smart-contract/node_modules/@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol | tail -30)",
+      "Bash(npm install *)",
+      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npm install @safe-global/api-kit@2.5.0 2>&1 | tail -8\")",
+      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && cat node_modules/@safe-global/api-kit/package.json | grep '\\\\\"version\\\\\"' | head -1\")",
+      "Bash(wsl -d Ubuntu -- bash -c \"ls /home/oksi/Work/gidr-smart-contract/node_modules/@safe-global/ && echo '---' && cat /home/oksi/Work/gidr-smart-contract/node_modules/@safe-global/types-kit/package.json 2>/dev/null | grep '\\\\\"version\\\\\"' || echo 'types-kit not found'\")",
+      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npx tsc --noEmit 2>&1\")"
     ],
     "additionalDirectories": [
       "\\home\\oksi\\Work\\gidr-smart-contract\\test",
