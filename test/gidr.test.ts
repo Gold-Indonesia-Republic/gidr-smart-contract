@@ -1,14 +1,14 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { GIDR } from "../typechain-types";
 
 describe("GIDR", function () {
   let gidr: GIDR;
-  let accounts: SignerWithAddress[];
-  let owner: SignerWithAddress;
-  let user1: SignerWithAddress;
-  let user2: SignerWithAddress;
+  let accounts: HardhatEthersSigner[];
+  let owner: HardhatEthersSigner;
+  let user1: HardhatEthersSigner;
+  let user2: HardhatEthersSigner;
 
   beforeEach(async function () {
     accounts = await ethers.getSigners();
@@ -20,9 +20,9 @@ describe("GIDR", function () {
     const GIDR = await ethers.getContractFactory("GIDR");
     gidr = (await upgrades.deployProxy(GIDR, {
       initializer: "initialize",
-      unsafeAllow: ["constructor"],
-    })) as GIDR;
-    await gidr.deployed();
+      unsafeAllow: ["constructor", "missing-initializer-call"] as any,
+    })) as unknown as GIDR;
+    await gidr.waitForDeployment();
   });
 
   describe("Deployment", function () {
@@ -35,26 +35,26 @@ describe("GIDR", function () {
       expect(await gidr.symbol()).to.equal("GIDR");
     });
 
-    it("Should initialize with version code 0", async function () {
-      expect(await gidr.versionCode()).to.equal(0);
+    it("Should initialize with version code 6", async function () {
+      expect(await gidr.versionCode()).to.equal(6n);
     });
   });
 
   describe("Transactions", function () {
     it("Should transfer tokens between accounts", async function () {
       // Mint 50 tokens to owner
-      await gidr.connect(owner).mint(owner.address, 50);
-      expect(await gidr.balanceOf(owner.address)).to.equal(50);
+      await gidr.connect(owner).mint(owner.address, 50n);
+      expect(await gidr.balanceOf(owner.address)).to.equal(50n);
 
       // Transfer 50 tokens from owner to user1
-      await gidr.connect(owner).transfer(user1.address, 50);
+      await gidr.connect(owner).transfer(user1.address, 50n);
       const user1Balance = await gidr.balanceOf(user1.address);
-      expect(user1Balance).to.equal(50);
+      expect(user1Balance).to.equal(50n);
 
       // Transfer 50 tokens from user1 to user2
-      await gidr.connect(user1).transfer(user2.address, 50);
+      await gidr.connect(user1).transfer(user2.address, 50n);
       const user2Balance = await gidr.balanceOf(user2.address);
-      expect(user2Balance).to.equal(50);
+      expect(user2Balance).to.equal(50n);
     });
 
     it("Should fail if sender doesn't have enough tokens", async function () {
@@ -62,7 +62,7 @@ describe("GIDR", function () {
 
       // Try to send 1 token from user1 (0 tokens) to owner
       await expect(
-        gidr.connect(user1).transfer(owner.address, 1)
+        gidr.connect(user1).transfer(owner.address, 1n)
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 
       // Owner balance shouldn't have changed.
@@ -71,31 +71,31 @@ describe("GIDR", function () {
 
     it("Should update balances after transfers", async function () {
       // Mint some tokens to owner
-      await gidr.connect(owner).mint(owner.address, 5000);
+      await gidr.connect(owner).mint(owner.address, 5000n);
       const initialOwnerBalance = await gidr.balanceOf(owner.address);
 
       // Transfer 100 tokens from owner to user1.
-      await gidr.connect(owner).transfer(user1.address, 100);
+      await gidr.connect(owner).transfer(user1.address, 100n);
 
       // Transfer another 50 tokens from owner to user2.
-      await gidr.connect(owner).transfer(user2.address, 50);
+      await gidr.connect(owner).transfer(user2.address, 50n);
 
       // Check balances.
       const finalOwnerBalance = await gidr.balanceOf(owner.address);
-      expect(finalOwnerBalance).to.equal(initialOwnerBalance.sub(150));
+      expect(finalOwnerBalance).to.equal(initialOwnerBalance - 150n);
 
       const user1Balance = await gidr.balanceOf(user1.address);
-      expect(user1Balance).to.equal(100);
+      expect(user1Balance).to.equal(100n);
 
       const user2Balance = await gidr.balanceOf(user2.address);
-      expect(user2Balance).to.equal(50);
+      expect(user2Balance).to.equal(50n);
     });
   });
 
   describe("Fee Management", function () {
     it("Should set and get transfer fee correctly", async function () {
       const feeReceiver = user1.address;
-      const fee = ethers.utils.parseEther("0.1"); // 0.1 GIDR
+      const fee = ethers.parseEther("0.1"); // 0.1 GIDR
 
       await gidr.connect(owner).setTransferFee(feeReceiver, fee);
 
@@ -105,8 +105,8 @@ describe("GIDR", function () {
 
     it("Should set and get burn fee correctly", async function () {
       const feeReceiver = user1.address;
-      const fee = 100; // 1% (100 basis points)
-      const decimal = 4; // 4 decimal places
+      const fee = 100n; // 1% (100 basis points)
+      const decimal = 4n; // 4 decimal places
 
       await gidr.connect(owner).setBurnFee(feeReceiver, fee, decimal);
 
@@ -117,7 +117,7 @@ describe("GIDR", function () {
 
     it("Should fail to set transfer fee if not owner", async function () {
       const feeReceiver = user1.address;
-      const fee = ethers.utils.parseEther("0.1");
+      const fee = ethers.parseEther("0.1");
 
       await expect(
         gidr.connect(user1).setTransferFee(feeReceiver, fee)
@@ -126,8 +126,8 @@ describe("GIDR", function () {
 
     it("Should fail to set burn fee if not owner", async function () {
       const feeReceiver = user1.address;
-      const fee = 100;
-      const decimal = 4;
+      const fee = 100n;
+      const decimal = 4n;
 
       await expect(
         gidr.connect(user1).setBurnFee(feeReceiver, fee, decimal)
@@ -136,7 +136,7 @@ describe("GIDR", function () {
 
     it("Should reject transfer fee > 1 GIDR", async function () {
       const feeReceiver = user1.address;
-      const excessiveFee = ethers.utils.parseEther("1.1"); // 1.1 GIDR
+      const excessiveFee = ethers.parseEther("1.1"); // 1.1 GIDR
 
       await expect(
         gidr.connect(owner).setTransferFee(feeReceiver, excessiveFee)
@@ -145,8 +145,8 @@ describe("GIDR", function () {
 
     it("Should reject burn fee > 100%", async function () {
       const feeReceiver = user1.address;
-      const fee = 100001; // > 100%
-      const decimal = 4;
+      const fee = 100001n; // > 100%
+      const decimal = 4n;
 
       await expect(
         gidr.connect(owner).setBurnFee(feeReceiver, fee, decimal)
@@ -154,10 +154,10 @@ describe("GIDR", function () {
     });
 
     it("Should reject transfer fee with null address", async function () {
-      const fee = ethers.utils.parseEther("0.1");
+      const fee = ethers.parseEther("0.1");
 
       await expect(
-        gidr.connect(owner).setTransferFee(ethers.constants.AddressZero, fee)
+        gidr.connect(owner).setTransferFee(ethers.ZeroAddress, fee)
       ).to.be.revertedWith("Address cannot be null");
     });
 
@@ -165,14 +165,14 @@ describe("GIDR", function () {
       await expect(
         gidr
           .connect(owner)
-          .setBurnFee(ethers.constants.AddressZero, 100, 4)
+          .setBurnFee(ethers.ZeroAddress, 100n, 4n)
       ).to.be.revertedWith("Address cannot be null");
     });
 
     it("Should reject burn fee decimal > 18", async function () {
       const feeReceiver = user1.address;
-      const fee = 100;
-      const decimal = 19;
+      const fee = 100n;
+      const decimal = 19n;
 
       await expect(
         gidr.connect(owner).setBurnFee(feeReceiver, fee, decimal)
@@ -183,17 +183,17 @@ describe("GIDR", function () {
   describe("Transfer with Fee", function () {
     beforeEach(async function () {
       // Set up transfer fee
-      const fee = ethers.utils.parseEther("0.1"); // 0.1 GIDR
+      const fee = ethers.parseEther("0.1"); // 0.1 GIDR
       await gidr.connect(owner).setTransferFee(user2.address, fee);
       // Mint tokens to user1
       await gidr
         .connect(owner)
-        .mint(user1.address, ethers.utils.parseEther("1000"));
+        .mint(user1.address, ethers.parseEther("1000"));
     });
 
     it("Should deduct transfer fee from sender", async function () {
-      const transferAmount = ethers.utils.parseEther("100");
-      const fee = ethers.utils.parseEther("0.1");
+      const transferAmount = ethers.parseEther("100");
+      const fee = ethers.parseEther("0.1");
       const user1StartingBalance = await gidr.balanceOf(user1.address);
       const user2StartingBalance = await gidr.balanceOf(user2.address);
       const receiverAddress = accounts[4];
@@ -205,15 +205,15 @@ describe("GIDR", function () {
       const receiverBalance = await gidr.balanceOf(receiverAddress.address);
 
       // user1 loses the transfer amount (fee is deducted from the recipient, not added to sender loss)
-      expect(user1EndBalance).to.equal(user1StartingBalance.sub(transferAmount));
+      expect(user1EndBalance).to.equal(user1StartingBalance - transferAmount);
       // Recipient gets transfer amount minus fee
-      expect(receiverBalance).to.equal(transferAmount.sub(fee));
+      expect(receiverBalance).to.equal(transferAmount - fee);
       // Fee receiver gets the fee
-      expect(user2EndBalance).to.equal(user2StartingBalance.add(fee));
+      expect(user2EndBalance).to.equal(user2StartingBalance + fee);
     });
 
     it("Should fail if transfer amount less than fee", async function () {
-      const smallTransfer = ethers.utils.parseEther("0.05"); // Less than 0.1 fee
+      const smallTransfer = ethers.parseEther("0.05"); // Less than 0.1 fee
 
       await expect(
         gidr.connect(user1).transfer(accounts[4].address, smallTransfer)
@@ -221,8 +221,7 @@ describe("GIDR", function () {
     });
 
     it("Should fail if transfer amount + fee exceeds balance", async function () {
-      const transferAmount = ethers.utils.parseEther("999.95");
-      const fee = ethers.utils.parseEther("0.1");
+      const transferAmount = ethers.parseEther("999.95");
 
       await expect(
         gidr.connect(user1).transfer(accounts[4].address, transferAmount)
@@ -232,20 +231,20 @@ describe("GIDR", function () {
 
   describe("Minting and Burn Vault", function () {
     it("Should mint tokens correctly", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await gidr.connect(owner).mint(user1.address, amount);
       expect(await gidr.balanceOf(user1.address)).to.equal(amount);
     });
 
     it("Should fail to mint if not owner", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await expect(
         gidr.connect(user1).mint(user2.address, amount)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("Should allow burn vault to burn tokens", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await gidr.connect(owner).mint(user1.address, amount);
 
       // Set up user1 as the burn vault
@@ -257,11 +256,11 @@ describe("GIDR", function () {
       await gidr.connect(user1).burn(amount);
       const balanceAfter = await gidr.balanceOf(user1.address);
 
-      expect(balanceAfter).to.equal(balanceBefore.sub(amount));
+      expect(balanceAfter).to.equal(balanceBefore - amount);
     });
 
     it("Should fail to burn if not burn vault", async function () {
-      const amount = ethers.utils.parseEther("1000");
+      const amount = ethers.parseEther("1000");
       await gidr.connect(owner).mint(user1.address, amount);
 
       await expect(
@@ -274,13 +273,12 @@ describe("GIDR", function () {
       expect(await gidr.burnVault()).to.equal(user1.address);
     });
 
-    it("Should update burn vault allowlist", async function () {
+    it("Should replace burn vault when setBurnVault is called again", async function () {
       await gidr.connect(owner).setBurnVault(user1.address);
-      expect(await gidr.burnVaults(user1.address)).to.be.true;
+      expect(await gidr.burnVault()).to.equal(user1.address);
 
-      // Add another vault to the allowlist
-      await gidr.connect(owner).updateBurnVault(user2.address, true);
-      expect(await gidr.burnVaults(user2.address)).to.be.true;
+      await gidr.connect(owner).setBurnVault(user2.address);
+      expect(await gidr.burnVault()).to.equal(user2.address);
     });
 
     it("Should fail to set burn vault if not owner", async function () {
@@ -289,17 +287,50 @@ describe("GIDR", function () {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("Should revert if trying to call deprecated burnWithFee", async function () {
-      const amount = ethers.utils.parseEther("100");
+    it("Should burnWithFee: send fee to burnFeeReceived and full amount to burnVault", async function () {
+      const amount = ethers.parseEther("100");
+      const feeReceiver = accounts[3];
+
+      // 1% fee (100 / 10^4 = 0.01 = 1%)
+      await gidr.connect(owner).setBurnFee(feeReceiver.address, 100n, 4n);
+      await gidr.connect(owner).setBurnVault(user2.address);
+
+      const expectedFee = amount * 100n / 10000n; // 1 GIDR
+      // user1 must hold amount + fee
+      await gidr.connect(owner).mint(user1.address, amount + expectedFee);
+
+      const feeReceiverBefore = await gidr.balanceOf(feeReceiver.address);
+      const vaultBefore = await gidr.balanceOf(user2.address);
+
+      await gidr.connect(user1).burnWithFee(amount);
+
+      expect(await gidr.balanceOf(feeReceiver.address)).to.equal(feeReceiverBefore + expectedFee);
+      expect(await gidr.balanceOf(user2.address)).to.equal(vaultBefore + amount);
+      expect(await gidr.balanceOf(user1.address)).to.equal(0n);
+    });
+
+    it("Should burnWithFee: send full amount to burnVault when fee is zero", async function () {
+      const amount = ethers.parseEther("100");
+      await gidr.connect(owner).mint(user1.address, amount);
+      await gidr.connect(owner).setBurnVault(user2.address);
+
+      const vaultBefore = await gidr.balanceOf(user2.address);
+      await gidr.connect(user1).burnWithFee(amount);
+      expect(await gidr.balanceOf(user2.address)).to.equal(vaultBefore + amount);
+    });
+
+    it("Should revert burnWithFee if burn vault not set", async function () {
+      const amount = ethers.parseEther("100");
+      await gidr.connect(owner).mint(user1.address, amount);
       await expect(
         gidr.connect(user1).burnWithFee(amount)
-      ).to.be.revertedWith("Deprecated: use vault fee flow");
+      ).to.be.revertedWith("ERC20: transfer to the zero address");
     });
 
     it("Should allow burn vault to set burn fee", async function () {
       const feeReceiver = user2.address;
-      const fee = 100; // 1% (100 basis points)
-      const decimal = 4; // 4 decimal places
+      const fee = 100n; // 1% (100 basis points)
+      const decimal = 4n; // 4 decimal places
 
       // Set up user1 as the burn vault
       await gidr.connect(owner).setBurnVault(user1.address);
@@ -314,8 +345,8 @@ describe("GIDR", function () {
 
     it("Should fail to set burn fee if not owner or burn vault", async function () {
       const feeReceiver = user2.address;
-      const fee = 100;
-      const decimal = 4;
+      const fee = 100n;
+      const decimal = 4n;
 
       // user1 is not the owner or burn vault
       await expect(
@@ -324,4 +355,3 @@ describe("GIDR", function () {
     });
   });
 });
-

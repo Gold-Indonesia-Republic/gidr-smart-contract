@@ -37,8 +37,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     uint256 public burnFeeDecimal;
     /// @notice Address of the vault contract allowed to burn tokens
     address public burnVault;
-    /// @notice Allowlist of vault contracts permitted to burn tokens
-    mapping(address => bool) public burnVaults;
 
     /// @notice Event for setting transfer fee
     event SetTransferFee(address indexed feeReceived, uint256 indexed fee);
@@ -63,20 +61,15 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     );
     /// @notice Event for setting the burn vault
     event SetBurnVault(address indexed vault);
-    /// @notice Event for toggling burn vault access
-    event BurnVaultUpdated(address indexed vault, bool allowed);
 
     modifier onlyBurnVault() {
-        require(
-            burnVaults[_msgSender()] || _msgSender() == burnVault,
-            "Caller is not burn vault"
-        );
+        require(_msgSender() == burnVault, "Caller is not burn vault");
         _;
     }
 
     modifier onlyOwnerOrBurnVault() {
         require(
-            owner() == _msgSender() || burnVaults[_msgSender()] || _msgSender() == burnVault,
+            owner() == _msgSender() || _msgSender() == burnVault,
             "Caller is not owner or burn vault"
         );
         _;
@@ -87,13 +80,12 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         __UUPSUpgradeable_init();
         __Ownable_init();
         __ERC20_init("Gold Indonesia Republic", "GIDR");
+        versionCode = 6; // Update version code to 6, as this is the v6 implementation
     }
 
     /// @notice Authorize the upgrade
     /// @dev Only the owner can authorize the upgrade
-    function _authorizeUpgrade(address) internal override onlyOwner {
-        versionCode += 1;
-    }
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     /// @notice Migrate to new fee system, already used and deprecated as of v5, will be removed in v6
     /// @dev Only the owner can migrate to new fee system, remove in v6
@@ -126,48 +118,29 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /** @notice Set burn fee in percentage, the final amount is calculated from total GIDRs burned.
      * Percentage is calculated as: (burnFee / 10 ** burnFeeDecimal)%. It cannot be over 100%
      */
-    /// @param _burnFeeReceived The address of the receiver of the burn fee
     /// @param _burnFee The amount of the burn fee
     /// @param _burnFeeDecimal The decimal of the burn fee
     /// @dev Only the owner or burn vault can set burn fee, limit is still hardcoded and set to 100%
     function setBurnFee(
-        address _burnFeeReceived,
         uint256 _burnFee,
         uint256 _burnFeeDecimal
     ) external onlyOwnerOrBurnVault {
-        require(_burnFeeReceived != address(0), "Address cannot be null");
         require(_burnFeeDecimal <= 18, "Decimal cannot be greater than 18");
         // Adding reasonable limit
         require(_burnFee / 10 ** _burnFeeDecimal < 1, "Fee is over 100%");
-        burnFeeReceived = _burnFeeReceived;
+        burnFeeReceived = owner();
         burnFee = _burnFee;
         burnFeeDecimal = _burnFeeDecimal;
-        emit SetBurnFee(_burnFeeReceived, _burnFee, _burnFeeDecimal);
+        emit SetBurnFee(owner(), _burnFee, _burnFeeDecimal);
     }
 
     /// @notice Set the vault contract that is allowed to burn tokens
     /// @param _burnVault The address of the vault contract
-    /// @dev Only the owner can set the vault contract. Also registers the vault in the allowlist.
+    /// @dev Only the owner can set the vault contract
     function setBurnVault(address _burnVault) external onlyOwner {
-        _updateBurnVault(_burnVault, true);
+        require(_burnVault != address(0), "Burn vault cannot be zero");
         burnVault = _burnVault;
         emit SetBurnVault(_burnVault);
-    }
-
-    /// @notice Register or remove a vault from the burn allowlist
-    /// @param _burnVault The address of the vault contract
-    /// @param allowed Whether the vault is allowed to call burn
-    function updateBurnVault(address _burnVault, bool allowed) external onlyOwner {
-        _updateBurnVault(_burnVault, allowed);
-    }
-
-    function _updateBurnVault(address _burnVault, bool allowed) internal {
-        require(_burnVault != address(0), "Burn vault cannot be zero");
-        burnVaults[_burnVault] = allowed;
-        if (!allowed && burnVault == _burnVault) {
-            burnVault = address(0);
-        }
-        emit BurnVaultUpdated(_burnVault, allowed);
     }
 
     // Tidak diperlukan MAX_MINT di bagian ini karena minting akan menggunakan multi-sig wallet (3/3 Party)
@@ -188,9 +161,22 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _burn(_msgSender(), _amount);
     }
 
-    /** @notice Deprecated: fee logic now lives in vaults. */
-    function burnWithFee(uint256) external pure {
-        revert("Deprecated: use vault fee flow");
+    /** @notice Transfer tokens to burn vault (minus fee sent to owner)
+     * @param _amount The total amount of GIDR to send
+     */
+    function burnWithFee(uint256 _amount) external {
+        // Untuk melengkapi kebutuhan admin fee dari pihak gold redemption
+        uint256 feeAmount = (_amount * burnFee) / 10 ** burnFeeDecimal;
+        if (feeAmount > 0) {
+            // Cek jika balance memenuhi
+            require(
+                feeAmount + _amount <= balanceOf(_msgSender()),
+                "ERC20: total amount plus fee exceeds balance"
+            );
+            super._transfer(_msgSender(), burnFeeReceived, feeAmount);
+            emit BurnFee(_msgSender(), burnFeeReceived, feeAmount);
+        }
+        _transfer(_msgSender(), burnVault, _amount);
     }
 
     /** @notice Transferring GIDR

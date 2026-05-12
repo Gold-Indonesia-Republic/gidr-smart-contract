@@ -2,7 +2,6 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-etherscan";
 import "hardhat-gas-reporter";
 
 import "@openzeppelin/hardhat-upgrades";
@@ -49,10 +48,7 @@ const config: HardhatUserConfig = {
     }
   },
   etherscan: {
-    apiKey: {
-      polygonMumbai: process.env.POLYGON_API_KEY as string,
-      polygon: process.env.POLYGON_API_KEY as string,
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY as string,
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

@@ -22,7 +22,7 @@ async function main() {
   // );
   const GIDR = await ethers.getContractFactory("GIDR");
   var CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
-  const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS || "";
+  const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS_B || "";
   if (process.env.PROD != "yes") {
     CONTRACT_ADDRESS = TEST_CONTRACT_ADDRESS;
   }
@@ -48,10 +48,13 @@ async function main() {
   }
 
   console.log("Upgrading contract...");
-  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR);
+  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR, {
+    // "missing-initializer-call" is valid at runtime but missing from the type definition
+    unsafeAllow: ["constructor", "missing-initializer-call"] as any,
+  });
 
-  await instance_gidr.deployed();
-  console.log("New implementation deployed to:", instance_gidr.address);
+  await instance_gidr.waitForDeployment();
+  console.log("New implementation deployed to:", await instance_gidr.getAddress());
 }
 
 // We recommend this pattern to be able to use async/await everywhere
