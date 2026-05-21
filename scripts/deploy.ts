@@ -18,15 +18,9 @@ async function main() {
 
   // We get the contract to deploy
   const GIDR = await ethers.getContractFactory("GIDR");
-  const instance_gidr = await upgrades.deployProxy(
-    GIDR,
-    [deployer.address], // Pass owner address as initialize argument
-    { 
-      initializer: "initialize",
-      unsafeAllow: ["constructor"],
-      constructorArgs: [deployer.address] // Pass trustedForwarder address as constructor argument
-    }
-  );
+  const instance_gidr = await upgrades.deployProxy(GIDR, [], {
+    initializer: "initialize",
+  });
   await instance_gidr.deployed();
   console.log("GIDR deployed to:", instance_gidr.address);
 }

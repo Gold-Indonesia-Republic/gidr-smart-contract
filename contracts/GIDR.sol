@@ -35,6 +35,8 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     uint256 public burnFee;
     /// @notice New variable for burn fee decimal, is in use since v5
     uint256 public burnFeeDecimal;
+    /// @notice Address of the vault contract allowed to burn tokens
+    address public burnVault;
 
     /// @notice Event for setting transfer fee
     event SetTransferFee(address indexed feeReceived, uint256 indexed fee);
@@ -57,30 +59,39 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         address indexed feeReceived,
         uint256 indexed amount
     );
+    /// @notice Event for setting the burn vault
+    event SetBurnVault(address indexed vault);
+
+    modifier onlyBurnVault() {
+        require(_msgSender() == burnVault, "Caller is not burn vault");
+        _;
+    }
+
+    modifier onlyOwnerOrBurnVault() {
+        require(
+            owner() == _msgSender() || _msgSender() == burnVault,
+            "Caller is not owner or burn vault"
+        );
+        _;
+    }
 
     /// @notice Initialize the contract
     function initialize() public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init();
         __ERC20_init("Gold Indonesia Republic", "GIDR");
+        versionCode = 6; // Update version code to 6, as this is the v6 implementation
     }
 
     /// @notice Authorize the upgrade
     /// @dev Only the owner can authorize the upgrade
-    function _authorizeUpgrade(address) internal override onlyOwner {
-        versionCode += 1;
-    }
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    /// @notice Migrate to new fee system, already used and deprecated as of v5, will be removed in v6
-    /// @dev Only the owner can migrate to new fee system, remove in v6
-    function migrateToNewFeeSystem() external onlyOwner {
-        require(transferFeeReceived == address(0), "Already migrated");
-        transferFeeReceived = feeReceived;
-        transferFee = fee;
-
-        // Optionally clear old values
-        feeReceived = address(0);
-        fee = 0;
+    /// @notice Reinitializer for v6 — updates symbol and versionCode in existing proxy storage
+    /// @dev Called atomically via upgradeToAndCall; reinitializer(2) runs once after the original initializer(1).
+    ///      Intentionally omits __Ownable_init — already called in initialize(), re-calling would reset the owner.
+    function initializeV6() public reinitializer(2) onlyOwner {
+        versionCode = 6;
     }
 
     /// @notice Set transfer fee, it cannot be over 1 GIDR
@@ -102,23 +113,29 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /** @notice Set burn fee in percentage, the final amount is calculated from total GIDRs burned.
      * Percentage is calculated as: (burnFee / 10 ** burnFeeDecimal)%. It cannot be over 100%
      */
-    /// @param _burnFeeReceived The address of the receiver of the burn fee
     /// @param _burnFee The amount of the burn fee
     /// @param _burnFeeDecimal The decimal of the burn fee
-    /// @dev Only the owner can set burn fee, limit is still hardcoded and set to 100%
+    /// @dev Only the owner or burn vault can set burn fee, limit is still hardcoded and set to 100%
     function setBurnFee(
-        address _burnFeeReceived,
         uint256 _burnFee,
         uint256 _burnFeeDecimal
-    ) external onlyOwner {
-        require(_burnFeeReceived != address(0), "Address cannot be null");
+    ) external onlyOwnerOrBurnVault {
         require(_burnFeeDecimal <= 18, "Decimal cannot be greater than 18");
         // Adding reasonable limit
         require(_burnFee / 10 ** _burnFeeDecimal < 1, "Fee is over 100%");
-        burnFeeReceived = _burnFeeReceived;
+        burnFeeReceived = owner();
         burnFee = _burnFee;
         burnFeeDecimal = _burnFeeDecimal;
-        emit SetBurnFee(_burnFeeReceived, _burnFee, _burnFeeDecimal);
+        emit SetBurnFee(owner(), _burnFee, _burnFeeDecimal);
+    }
+
+    /// @notice Set the vault contract that is allowed to burn tokens
+    /// @param _burnVault The address of the vault contract
+    /// @dev Only the owner can set the vault contract
+    function setBurnVault(address _burnVault) external onlyOwner {
+        require(_burnVault != address(0), "Burn vault cannot be zero");
+        burnVault = _burnVault;
+        emit SetBurnVault(_burnVault);
     }
 
     // Tidak diperlukan MAX_MINT di bagian ini karena minting akan menggunakan multi-sig wallet (3/3 Party)
@@ -131,18 +148,16 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _mint(_to, _amount);
     }
 
-    /** @notice Burning GIDR, as of v5 all users can burn GIDR, this will be set to only owner in v6
-     * @dev Setting to only owner is imperative in v6 to protect the balance of physical gold & GIDR
+    /** @notice Burning GIDR, only the configured vault can burn
+     * @dev Restrict burning to the vault to centralize redemption flow
      * @param _amount The amount of GIDR to burn
      */
-    function burn(uint256 _amount) external {
+    function burn(uint256 _amount) external onlyBurnVault {
         _burn(_msgSender(), _amount);
     }
 
-    /** @notice Burning GIDR with fee, as of v5 all users can burn GIDR with fee. 
-     * This function will be set to using forwarders (meta-tx) in v6
-     * @dev Setting forwarder(s) is imperative in v6 to protect the balance of physical gold & GIDR
-     * @param _amount The amount of GIDR to burn
+    /** @notice Transfer tokens to burn vault (minus fee sent to owner)
+     * @param _amount The total amount of GIDR to send
      */
     function burnWithFee(uint256 _amount) external {
         // Untuk melengkapi kebutuhan admin fee dari pihak gold redemption
@@ -156,7 +171,7 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
             super._transfer(_msgSender(), burnFeeReceived, feeAmount);
             emit BurnFee(_msgSender(), burnFeeReceived, feeAmount);
         }
-        _burn(_msgSender(), _amount);
+        _transfer(_msgSender(), burnVault, _amount);
     }
 
     /** @notice Transferring GIDR

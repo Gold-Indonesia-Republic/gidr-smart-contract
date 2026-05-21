@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npx tsc --noEmit 2>&1 | grep 'upgrade-safe'\")"
+    ]
+  }
+}

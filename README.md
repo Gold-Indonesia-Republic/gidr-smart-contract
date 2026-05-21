@@ -22,6 +22,7 @@ This smart contract has been audited by [CertiK](https://skynet.certik.com/proje
 | Path | Description |
 | ---- | ----------- |
 | `contracts/GIDR.sol` | Core ERC20 implementation with upgrade, fee, and mint/burn logic. |
+| `contracts/GIDRVault.sol` | Holds deposited GIDR and lets an owner-managed burner list destroy stored tokens. |
 | `scripts/deploy.ts` | Deploys a proxy + implementation pair using Hardhat Upgrades. |
 | `scripts/upgrade.ts` | Upgrades an existing proxy after fetching implementation + ownership data. |
 | `test/gidr.test.ts` | Mocha/Chai tests that cover transfers, fees, burns, and negative cases. |
