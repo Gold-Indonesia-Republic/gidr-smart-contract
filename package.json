@@ -23,6 +23,7 @@
   "dependencies": {
     "@safe-global/api-kit": "^2.5.0",
     "@safe-global/protocol-kit": "^5.0.2",
+    "@trezor/connect": "^9.7.3",
     "solidity-docgen": "^0.6.0-beta.36"
   }
 }

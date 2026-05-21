@@ -87,6 +87,13 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /// @dev Only the owner can authorize the upgrade
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
+    /// @notice Reinitializer for v6 — updates symbol and versionCode in existing proxy storage
+    /// @dev Called atomically via upgradeToAndCall; reinitializer(2) runs once after the original initializer(1).
+    ///      Intentionally omits __Ownable_init — already called in initialize(), re-calling would reset the owner.
+    function initializeV6() public reinitializer(2) onlyOwner {
+        versionCode = 6;
+    }
+
     /// @notice Migrate to new fee system, already used and deprecated as of v5, will be removed in v6
     /// @dev Only the owner can migrate to new fee system, remove in v6
     function migrateToNewFeeSystem() external onlyOwner {

@@ -91,7 +91,12 @@
       "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npm install @safe-global/api-kit@2.5.0 2>&1 | tail -8\")",
       "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && cat node_modules/@safe-global/api-kit/package.json | grep '\\\\\"version\\\\\"' | head -1\")",
       "Bash(wsl -d Ubuntu -- bash -c \"ls /home/oksi/Work/gidr-smart-contract/node_modules/@safe-global/ && echo '---' && cat /home/oksi/Work/gidr-smart-contract/node_modules/@safe-global/types-kit/package.json 2>/dev/null | grep '\\\\\"version\\\\\"' || echo 'types-kit not found'\")",
-      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npx tsc --noEmit 2>&1\")"
+      "Bash(wsl -d Ubuntu -- bash -c \"cd /home/oksi/Work/gidr-smart-contract && npx tsc --noEmit 2>&1\")",
+      "Bash(npx ts-node *)",
+      "Bash(node *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('exports', d.get\\('main', d.get\\('browser', 'none'\\)\\)\\), indent=2\\)\\)\")",
+      "Bash(npm uninstall *)",
+      "WebFetch(domain:connect.trezor.io)"
     ],
     "additionalDirectories": [
       "\\home\\oksi\\Work\\gidr-smart-contract\\test",
