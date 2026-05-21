@@ -94,18 +94,6 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         versionCode = 6;
     }
 
-    /// @notice Migrate to new fee system, already used and deprecated as of v5, will be removed in v6
-    /// @dev Only the owner can migrate to new fee system, remove in v6
-    function migrateToNewFeeSystem() external onlyOwner {
-        require(transferFeeReceived == address(0), "Already migrated");
-        transferFeeReceived = feeReceived;
-        transferFee = fee;
-
-        // Optionally clear old values
-        feeReceived = address(0);
-        fee = 0;
-    }
-
     /// @notice Set transfer fee, it cannot be over 1 GIDR
     /// @param _transferFeeReceived The address of the receiver of the transfer fee
     /// @param _transferFee The amount of the transfer fee
