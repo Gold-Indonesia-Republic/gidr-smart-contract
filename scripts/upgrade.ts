@@ -20,7 +20,7 @@ async function main() {
   // const contract_owner = await ethers.getSigner(
   //   process.env.OWNER_ADDRESS || ""
   // );
-  const GIDR = await ethers.getContractFactory("GIDR");
+  const GOIDR = await ethers.getContractFactory("GOIDR");
   var CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || "";
   const TEST_CONTRACT_ADDRESS = process.env.TEST_CONTRACT_ADDRESS_B || "";
   if (process.env.PROD != "yes") {
@@ -32,14 +32,14 @@ async function main() {
   );
   console.log("Impl address:", impl);
 
-  const proxy = await ethers.getContractAt("GIDR", CONTRACT_ADDRESS);
+  const proxy = await ethers.getContractAt("GOIDR", CONTRACT_ADDRESS);
   const owner = await proxy.owner();
   console.log("Owner:", owner);
 
   const [signer] = await ethers.getSigners();
   console.log("Signer:", signer.address);
 
-  const implContract = await ethers.getContractAt("GIDR", impl);
+  const implContract = await ethers.getContractAt("GOIDR", impl);
   try {
     const implOwner = await implContract.owner();
     console.log("Impl owner:", implOwner); // Should usually fail or return junk
@@ -48,13 +48,13 @@ async function main() {
   }
 
   console.log("Upgrading contract...");
-  const instance_gidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GIDR, {
+  const instance_goidr = await upgrades.upgradeProxy(CONTRACT_ADDRESS, GOIDR, {
     // "missing-initializer-call" is valid at runtime but missing from the type definition
     unsafeAllow: ["constructor", "missing-initializer-call"] as any,
   });
 
-  await instance_gidr.waitForDeployment();
-  console.log("New implementation deployed to:", await instance_gidr.getAddress());
+  await instance_goidr.waitForDeployment();
+  console.log("New implementation deployed to:", await instance_goidr.getAddress());
 }
 
 // We recommend this pattern to be able to use async/await everywhere

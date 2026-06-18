@@ -17,12 +17,12 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   // We get the contract to deploy
-  const GIDR = await ethers.getContractFactory("GIDR");
-  const instance_gidr = await upgrades.deployProxy(GIDR, [], {
+  const GOIDR = await ethers.getContractFactory("GOIDR");
+  const instance_goidr = await upgrades.deployProxy(GOIDR, [], {
     initializer: "initialize",
   });
-  await instance_gidr.deployed();
-  console.log("GIDR deployed to:", instance_gidr.address);
+  await instance_goidr.deployed();
+  console.log("GOIDR deployed to:", instance_goidr.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -19,10 +19,10 @@ async function main() {
   if (!RPC_URL) throw new Error("Missing POLYGON_MAINNET_URL in .env");
 
   // --- Step 1: Deploy new implementation (validates storage layout, updates OZ manifest) ---
-  const GIDRFactory = await ethers.getContractFactory("GIDR");
+  const GOIDRFactory = await ethers.getContractFactory("GOIDR");
 
   console.log("Deploying new implementation...");
-  const newImplAddress = (await upgrades.prepareUpgrade(PROXY_ADDRESS, GIDRFactory, {
+  const newImplAddress = (await upgrades.prepareUpgrade(PROXY_ADDRESS, GOIDRFactory, {
     unsafeAllow: ["constructor", "missing-initializer-call"] as any,
     redeployImplementation: "onchange",
   })) as string;
@@ -43,11 +43,12 @@ async function main() {
   }
 
   // --- Step 3: Encode upgradeToAndCall calldata ---
-  // upgradeToAndCall atomically swaps the implementation and calls initializeV6()
-  // on the new implementation, updating symbol and versionCode in proxy storage.
+  // upgradeToAndCall atomically swaps the implementation and calls initializeV7()
+  // on the new implementation, bumping versionCode in proxy storage. The GIDR -> GOIDR
+  // symbol rebrand takes effect via the symbol() override in the new implementation.
   const reinitCalldata = new ethers.Interface([
-    "function initializeV6()",
-  ]).encodeFunctionData("initializeV6");
+    "function initializeV7()",
+  ]).encodeFunctionData("initializeV7");
 
   const upgradeCalldata = new ethers.Interface([
     "function upgradeToAndCall(address newImplementation, bytes memory data)",
@@ -56,7 +57,7 @@ async function main() {
   // --- Step 4: Get Trezor address ---
   // Trezor Suite must be running — it starts the Bridge at 127.0.0.1:21325.
   await TrezorConnect.init({
-    manifest: { appName: "GIDR Smart Contract", appUrl: "https://gidr.co.id", email: "hi@gidr.co.id" },
+    manifest: { appName: "GOIDR Smart Contract", appUrl: "https://goidr.co.id", email: "hi@goidr.co.id" },
     transports: ["BridgeTransport"],
   });
 
