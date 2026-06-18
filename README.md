@@ -1,31 +1,31 @@
-# GIDR Smart Contracts
+# GOIDR Smart Contracts
 
-Smart contract workspace for the **Gold Indonesia Republic (ticker: GIDR)** ERC-20 gold-backed stablecoin pegged 1 to 1 to gold.  
+Smart contract workspace for the **Gold Indonesia Republic (ticker: GOIDR)** ERC-20 gold-backed stablecoin pegged 1 to 1 to gold.  
 The project is powered by Hardhat, TypeScript, and OpenZeppelin’s upgradeable stack so that the ERC20 logic can evolve while keeping the proxy address that wallets and integrations use.
 
 ### Audits
-This smart contract has been audited by [CertiK](https://skynet.certik.com/projects/gold-indonesia-republic) and [BRAIN IPB](https://gidr.co.id/assets/pdf/BRAIN-report.pdf)
+This smart contract has been audited by [CertiK](https://skynet.certik.com/projects/gold-indonesia-republic) and [BRAIN IPB](https://goidr.co.id/assets/pdf/BRAIN-report.pdf)
 
 ---
 
 ## Highlights
 
-- **Upgradeable ERC20** – `GIDR.sol` is a UUPS-upgradeable ERC20 with ownership control through OpenZeppelin’s `OwnableUpgradeable`.
-- **Fee controls** – Owners can configure a fixed transfer fee (capped at `1 GIDR`) and a percentage-based burn fee to channel redemption costs to dedicated receivers.
-- **Mint/burn admin flow** – The owner (currently a multisig) mints backing supply; any holder can currently burn tokens without the burn fee applied. Users burning GIDR for physical redemption will incur a burn fee.
+- **Upgradeable ERC20** – `GOIDR.sol` is a UUPS-upgradeable ERC20 with ownership control through OpenZeppelin’s `OwnableUpgradeable`.
+- **Fee controls** – Owners can configure a fixed transfer fee (capped at `1 GOIDR`) and a percentage-based burn fee to channel redemption costs to dedicated receivers.
+- **Mint/burn admin flow** – The owner (currently a multisig) mints backing supply; any holder can currently burn tokens without the burn fee applied. Users burning GOIDR for physical redemption will incur a burn fee.
 - **Scripted operations** – Deployment and upgrade scripts wrap Hardhat Upgrades, while verification and flattening helpers (via `sol-merger`) assist audits.
-- **Typed tests & docs** – TypeChain bindings drive the test suite in `test/gidr.test.ts` and `solidity-docgen` can emit API docs into `./docs`.
+- **Typed tests & docs** – TypeChain bindings drive the test suite in `test/goidr.test.ts` and `solidity-docgen` can emit API docs into `./docs`.
 
 
 ## Repository Layout
 
 | Path | Description |
 | ---- | ----------- |
-| `contracts/GIDR.sol` | Core ERC20 implementation with upgrade, fee, and mint/burn logic. |
-| `contracts/GIDRVault.sol` | Holds deposited GIDR and lets an owner-managed burner list destroy stored tokens. |
+| `contracts/GOIDR.sol` | Core ERC20 implementation with upgrade, fee, and mint/burn logic. |
+| `contracts/GOIDRVault.sol` | Holds deposited GOIDR and lets an owner-managed burner list destroy stored tokens. |
 | `scripts/deploy.ts` | Deploys a proxy + implementation pair using Hardhat Upgrades. |
 | `scripts/upgrade.ts` | Upgrades an existing proxy after fetching implementation + ownership data. |
-| `test/gidr.test.ts` | Mocha/Chai tests that cover transfers, fees, burns, and negative cases. |
+| `test/goidr.test.ts` | Mocha/Chai tests that cover transfers, fees, burns, and negative cases. |
 | `docs/index.md` | Example output from `solidity-docgen`. |
 | `hardhat.config.ts` | Hardhat setup with Polygon (testnet/mainnet) & Mandala networks, gas reporter, docgen, and Etherscan API wiring. |
 
@@ -105,7 +105,7 @@ npm run build-contracts
 
    The script:
    - Prints the current implementation and owner for traceability.
-   - Calls `upgradeProxy` with the new `GIDR` implementation and deploys any constructor args for the trusted forwarder.
+   - Calls `upgradeProxy` with the new `GOIDR` implementation and deploys any constructor args for the trusted forwarder.
    - Waits for the new implementation transaction to be mined.
 
 
@@ -134,7 +134,7 @@ This rewrites the markdown API reference in `docs/`. Commit the generated files 
 
 ## Testing Notes
 
-- The suite in `test/gidr.test.ts` covers positive flows (transfers, relayed transfers, fee configuration, mint/burn) and negative cases (frozen accounts, excessive fees, insufficient balances).
+- The suite in `test/goidr.test.ts` covers positive flows (transfers, relayed transfers, fee configuration, mint/burn) and negative cases (frozen accounts, excessive fees, insufficient balances).
 - Tests rely on Hardhat Network impersonating multiple `Signer`s and OpenZeppelin’s `MinimalForwarder` to simulate meta-transactions, so no external services are required.
 - Run with `REPORT_GAS=true` to annotate gas costs per function.
 

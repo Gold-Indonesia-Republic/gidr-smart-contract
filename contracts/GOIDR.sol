@@ -5,11 +5,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-/// @title GIDR - Gold Indonesia Republic
-/// @author Oksidian Tafly - GIDR Dev
-/// @notice GIDR is a stablecoin that is pegged to the price of gold.
+/// @title GOIDR - Gold Indonesia Republic
+/// @author Oksidian Tafly - GOIDR Dev
+/// @notice GOIDR is a stablecoin that is pegged to the price of gold.
 /// @dev All is functional as of v5
-contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
+contract GOIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
@@ -17,10 +17,10 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     /// @dev This is used to prevent reverts due to upgradeable contract
     uint256 public versionCode;
 
-    /// @notice Old variable for fee receiver, will be removed in v6
+    /// @notice Old variable for fee receiver, will be removed in v7
     /// @dev Still up in v5 but not used
     address public feeReceived; // deprecated
-    /// @notice Old variable for fee amount, will be removed in v6
+    /// @notice Old variable for fee amount, will be removed in v7
     /// @dev Still up in v5 but not used
     uint256 public fee; // deprecated
 
@@ -79,38 +79,50 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     function initialize() public initializer {
         __UUPSUpgradeable_init();
         __Ownable_init();
-        __ERC20_init("Gold Indonesia Republic", "GIDR");
-        versionCode = 6; // Update version code to 6, as this is the v6 implementation
+        __ERC20_init("Gold Indonesia Republic", "GOIDR");
+        versionCode = 7; // Update version code to 7, as this is the v7 implementation
     }
 
     /// @notice Authorize the upgrade
     /// @dev Only the owner can authorize the upgrade
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-    /// @notice Reinitializer for v6 — updates symbol and versionCode in existing proxy storage
-    /// @dev Called atomically via upgradeToAndCall; reinitializer(2) runs once after the original initializer(1).
-    ///      Intentionally omits __Ownable_init — already called in initialize(), re-calling would reset the owner.
-    function initializeV6() public reinitializer(2) onlyOwner {
-        versionCode = 6;
+    /// @notice ERC20 symbol, rebranded GIDR -> GOIDR in v7.
+    /// @dev Overrides ERC20Upgradeable.symbol(). The live proxy's stored _symbol still reads
+    ///      "GIDR" (set by the original initialize(), which cannot re-run), so the symbol is
+    ///      rebranded here at the code level. Fresh deploys also set "GOIDR" via __ERC20_init,
+    ///      keeping both paths consistent. The token name is unchanged.
+    function symbol() public pure override returns (string memory) {
+        return "GOIDR";
     }
 
-    /// @notice Set transfer fee, it cannot be over 1 GIDR
+    /// @notice Reinitializer for v7 — bumps versionCode in existing proxy storage.
+    /// @dev Called atomically via upgradeToAndCall; reinitializer(3) runs once after the original initializer(1).
+    ///      Uses slot 3 (not 2) so the upgrade succeeds regardless of whether an earlier v6 reinitializer
+    ///      was ever executed on-chain — the live proxy is still at v5.
+    ///      Intentionally omits __Ownable_init — already called in initialize(), re-calling would reset the owner.
+    ///      The symbol rebrand is handled by the symbol() override above, not storage.
+    function initializeV7() public reinitializer(3) onlyOwner {
+        versionCode = 7;
+    }
+
+    /// @notice Set transfer fee, it cannot be over 1 GOIDR
     /// @param _transferFeeReceived The address of the receiver of the transfer fee
     /// @param _transferFee The amount of the transfer fee
-    /// @dev Only the owner can set transfer fee, limit is still hardcoded and set to 1 GIDR
+    /// @dev Only the owner can set transfer fee, limit is still hardcoded and set to 1 GOIDR
     function setTransferFee(
         address _transferFeeReceived,
         uint256 _transferFee
     ) external onlyOwner {
         require(_transferFeeReceived != address(0), "Address cannot be null");
         // Adding reasonable limit
-        require(_transferFee / 10 ** 18 < 1, "Fee is over 1 GIDR");
+        require(_transferFee / 10 ** 18 < 1, "Fee is over 1 GOIDR");
         transferFeeReceived = _transferFeeReceived;
         transferFee = _transferFee;
         emit SetTransferFee(_transferFeeReceived, _transferFee);
     }
 
-    /** @notice Set burn fee in percentage, the final amount is calculated from total GIDRs burned.
+    /** @notice Set burn fee in percentage, the final amount is calculated from total GOIDRs burned.
      * Percentage is calculated as: (burnFee / 10 ** burnFeeDecimal)%. It cannot be over 100%
      */
     /// @param _burnFee The amount of the burn fee
@@ -139,25 +151,25 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     }
 
     // Tidak diperlukan MAX_MINT di bagian ini karena minting akan menggunakan multi-sig wallet (3/3 Party)
-    // Selain itu, GIDR bersifat stablecoin sehingga minting tidak mempengaruhi harga
-    /** @notice Mint GIDR, only the owner can mint, no need to set limits as GIDR is protected by multi-sig wallet (3/3 Party)
+    // Selain itu, GOIDR bersifat stablecoin sehingga minting tidak mempengaruhi harga
+    /** @notice Mint GOIDR, only the owner can mint, no need to set limits as GOIDR is protected by multi-sig wallet (3/3 Party)
      * @param _to The address of the recipient
-     * @param _amount The amount of GIDR to mint
+     * @param _amount The amount of GOIDR to mint
      */
     function mint(address _to, uint256 _amount) external onlyOwner {
         _mint(_to, _amount);
     }
 
-    /** @notice Burning GIDR, only the configured vault can burn
+    /** @notice Burning GOIDR, only the configured vault can burn
      * @dev Restrict burning to the vault to centralize redemption flow
-     * @param _amount The amount of GIDR to burn
+     * @param _amount The amount of GOIDR to burn
      */
     function burn(uint256 _amount) external onlyBurnVault {
         _burn(_msgSender(), _amount);
     }
 
     /** @notice Transfer tokens to burn vault (minus fee sent to owner)
-     * @param _amount The total amount of GIDR to send
+     * @param _amount The total amount of GOIDR to send
      */
     function burnWithFee(uint256 _amount) external {
         // Untuk melengkapi kebutuhan admin fee dari pihak gold redemption
@@ -174,11 +186,11 @@ contract GIDR is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
         _transfer(_msgSender(), burnVault, _amount);
     }
 
-    /** @notice Transferring GIDR
-     * @dev No changes in v6
+    /** @notice Transferring GOIDR
+     * @dev No changes in v7
      * @param from The address of the sender
      * @param to The address of the recipient
-     * @param amount The amount of GIDR to transfer
+     * @param amount The amount of GOIDR to transfer
      */
     function _transfer(
         address from,

@@ -4,14 +4,14 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-interface IGIDR is IERC20 {
+interface IGOIDR is IERC20 {
     function burn(uint256 amount) external;
 }
 
-/// @title GIDR Vault
-/// @notice Stores GIDR deposits and lets an owner-managed list of burners destroy the stored tokens.
-contract GIDRVault is Ownable {
-    IGIDR public immutable gidr;
+/// @title GOIDR Vault
+/// @notice Stores GOIDR deposits and lets an owner-managed list of burners destroy the stored tokens.
+contract GOIDRVault is Ownable {
+    IGOIDR public immutable goidr;
 
     mapping(address => bool) public burners;
     address public burnFeeReceiver;
@@ -30,9 +30,9 @@ contract GIDRVault is Ownable {
     );
     event BurnFeeCharged(address indexed receiver, uint256 amount);
 
-    constructor(address gidrToken) {
-        require(gidrToken != address(0), "GIDR address is zero");
-        gidr = IGIDR(gidrToken);
+    constructor(address goidrToken) {
+        require(goidrToken != address(0), "GOIDR address is zero");
+        goidr = IGOIDR(goidrToken);
     }
 
     modifier onlyBurner() {
@@ -71,41 +71,41 @@ contract GIDRVault is Ownable {
         emit BurnFeeUpdated(receiver, fee, feeDecimal);
     }
 
-    /// @notice Pull GIDR into the vault. Caller must approve first.
+    /// @notice Pull GOIDR into the vault. Caller must approve first.
     function deposit(uint256 amount) external {
         require(amount > 0, "Amount is zero");
-        gidr.transferFrom(_msgSender(), address(this), amount);
+        goidr.transferFrom(_msgSender(), address(this), amount);
         emit Deposited(_msgSender(), amount);
     }
 
-    /// @notice Burn stored GIDR from the vault balance.
+    /// @notice Burn stored GOIDR from the vault balance.
     function burnStored(uint256 amount) external onlyBurner {
         _burnWithFee(amount);
     }
 
     function burnAll() external onlyBurner {
-        uint256 balance = gidr.balanceOf(address(this));
-        require(balance > 0, "No GIDR to burn");
+        uint256 balance = goidr.balanceOf(address(this));
+        require(balance > 0, "No GOIDR to burn");
         _burnWithFee(balance);
     }
 
     function totalStored() external view returns (uint256) {
-        return gidr.balanceOf(address(this));
+        return goidr.balanceOf(address(this));
     }
 
-    /// @notice Recover GIDR from the vault back to the contract owner.
+    /// @notice Recover GOIDR from the vault back to the contract owner.
     /// @dev Only callable by owner, allows reclaiming unburned tokens.
     function recover(uint256 amount) external onlyOwner {
         require(amount > 0, "Amount is zero");
-        uint256 balance = gidr.balanceOf(address(this));
+        uint256 balance = goidr.balanceOf(address(this));
         require(amount <= balance, "Insufficient vault balance");
-        gidr.transfer(owner(), amount);
+        goidr.transfer(owner(), amount);
         emit Recovered(owner(), amount);
     }
 
     function _burnWithFee(uint256 amount) internal {
         require(amount > 0, "Amount is zero");
-        uint256 balance = gidr.balanceOf(address(this));
+        uint256 balance = goidr.balanceOf(address(this));
         require(balance >= amount, "Insufficient vault balance");
 
         uint256 denominator = 10 ** burnFeeDecimal;
@@ -115,11 +115,11 @@ contract GIDRVault is Ownable {
 
         if (feeAmount > 0) {
             require(burnFeeReceiver != address(0), "Fee receiver is zero");
-            gidr.transfer(burnFeeReceiver, feeAmount);
+            goidr.transfer(burnFeeReceiver, feeAmount);
             emit BurnFeeCharged(burnFeeReceiver, feeAmount);
         }
 
-        gidr.burn(burnAmount);
+        goidr.burn(burnAmount);
         emit Burned(_msgSender(), burnAmount);
     }
 }
